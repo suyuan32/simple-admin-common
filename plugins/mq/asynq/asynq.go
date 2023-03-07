@@ -2,8 +2,10 @@ package asynq
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/hibiken/asynq"
+	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
@@ -14,7 +16,7 @@ type AsynqConf struct {
 	DB          int    `json:",optional,default=0"`
 	Concurrency int    `json:",optional,default=20"` // max concurrent process job task num
 	Enable      bool   `json:",default=true"`
-	Location    string `json:",default="`
+	Location    string `json:",optional,default="`
 }
 
 // WithRedisConf sets redis configuration from RedisConf.
@@ -67,6 +69,22 @@ func (c *AsynqConf) NewServer() *asynq.Server {
 func (c *AsynqConf) NewScheduler() *asynq.Scheduler {
 	if c.Enable {
 		return asynq.NewScheduler(c.NewRedisOpt(), nil)
+	} else {
+		return nil
+	}
+}
+
+// NewPeriodicTaskManager returns a periodic task manager from the configuration.
+func (c AsynqConf) NewPeriodicTaskManager(provider asynq.PeriodicTaskConfigProvider) *asynq.PeriodicTaskManager {
+	if c.Enable {
+		mgr, err := asynq.NewPeriodicTaskManager(
+			asynq.PeriodicTaskManagerOpts{
+				RedisConnOpt:               c.NewRedisOpt(),
+				PeriodicTaskConfigProvider: provider,         // this provider object is the interface to your config source
+				SyncInterval:               10 * time.Second, // this field specifies how often sync should happen
+			})
+		logx.Must(err)
+		return mgr
 	} else {
 		return nil
 	}

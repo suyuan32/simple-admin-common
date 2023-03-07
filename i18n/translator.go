@@ -12,8 +12,8 @@ import (
 	"golang.org/x/text/language"
 	"google.golang.org/grpc/status"
 
-	"github.com/suyuan32/simple-admin-common/utils"
 	"github.com/suyuan32/simple-admin-common/utils/errcode"
+	"github.com/suyuan32/simple-admin-common/utils/parse"
 )
 
 //go:embed locale/*.json
@@ -88,7 +88,7 @@ func (l *Translator) TransError(lang string, err error) error {
 
 // MatchLocalizer used to matcher the localizer in map
 func (l *Translator) MatchLocalizer(lang string) *i18n.Localizer {
-	tags := utils.ParseTags(lang)
+	tags := parse.ParseTags(lang)
 	for _, v := range tags {
 		if val, ok := l.localizer[v]; ok {
 			return val

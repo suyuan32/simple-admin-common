@@ -1,4 +1,4 @@
-package status
+package common
 
 const (
 	StatusNormal uint8 = 1

@@ -1,16 +1,19 @@
 package asynq
 
 import (
+	"fmt"
+
 	"github.com/hibiken/asynq"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
 // AsynqConf is the configuration struct for Asynq.
 type AsynqConf struct {
-	Addr   string `json:",default=127.0.0.1:6379"`
-	Pass   string `json:",optional"`
-	DB     int    `json:",optional,default=0"`
-	Enable bool   `json:",default=true"`
+	Addr        string `json:",default=127.0.0.1:6379"`
+	Pass        string `json:",optional"`
+	DB          int    `json:",optional,default=0"`
+	Concurrency int    `json:",optional,default=20"` // max concurrent process job task num
+	Enable      bool   `json:",default=true"`
 }
 
 // WithRedisConf sets redis configuration from RedisConf.
@@ -42,9 +45,18 @@ func (c *AsynqConf) NewClient() *asynq.Client {
 }
 
 // NewWorker returns a worker from the configuration.
-func (c *AsynqConf) NewWorker(cfg asynq.Config) *asynq.Server {
+func (c *AsynqConf) NewWorker() *asynq.Server {
 	if c.Enable {
-		return asynq.NewServer(c.NewRedisOpt(), cfg)
+		return asynq.NewServer(
+			asynq.RedisClientOpt{Addr: c.Addr, Password: c.Pass},
+			asynq.Config{
+				IsFailure: func(err error) bool {
+					fmt.Printf("failed to exec asynq task, err : %+v \n", err)
+					return true
+				},
+				Concurrency: c.Concurrency,
+			},
+		)
 	} else {
 		return nil
 	}

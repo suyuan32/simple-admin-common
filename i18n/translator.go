@@ -63,7 +63,8 @@ func (l *Translator) Trans(ctx context.Context, msgId string) string {
 }
 
 // TransError translates the error message
-func (l *Translator) TransError(lang string, err error) error {
+func (l *Translator) TransError(ctx context.Context, err error) error {
+	lang := ctx.Value("lang").(string)
 	if errcode.IsGrpcError(err) {
 		message, e := l.MatchLocalizer(lang).LocalizeMessage(&i18n.Message{ID: strings.Split(err.Error(), "desc = ")[1]})
 		if e != nil || message == "" {

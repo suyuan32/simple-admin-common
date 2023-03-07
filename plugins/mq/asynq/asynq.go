@@ -14,6 +14,7 @@ type AsynqConf struct {
 	DB          int    `json:",optional,default=0"`
 	Concurrency int    `json:",optional,default=20"` // max concurrent process job task num
 	Enable      bool   `json:",default=true"`
+	Location    string `json:",default="`
 }
 
 // WithRedisConf sets redis configuration from RedisConf.
@@ -44,11 +45,11 @@ func (c *AsynqConf) NewClient() *asynq.Client {
 	}
 }
 
-// NewWorker returns a worker from the configuration.
-func (c *AsynqConf) NewWorker() *asynq.Server {
+// NewServer returns a worker from the configuration.
+func (c *AsynqConf) NewServer() *asynq.Server {
 	if c.Enable {
 		return asynq.NewServer(
-			asynq.RedisClientOpt{Addr: c.Addr, Password: c.Pass},
+			c.NewRedisOpt(),
 			asynq.Config{
 				IsFailure: func(err error) bool {
 					fmt.Printf("failed to exec asynq task, err : %+v \n", err)
@@ -57,6 +58,15 @@ func (c *AsynqConf) NewWorker() *asynq.Server {
 				Concurrency: c.Concurrency,
 			},
 		)
+	} else {
+		return nil
+	}
+}
+
+// NewScheduler returns a scheduler from the configuration.
+func (c *AsynqConf) NewScheduler() *asynq.Scheduler {
+	if c.Enable {
+		return asynq.NewScheduler(c.NewRedisOpt(), nil)
 	} else {
 		return nil
 	}

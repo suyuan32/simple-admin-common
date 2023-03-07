@@ -1,6 +1,7 @@
 package i18n
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"net/http"
@@ -48,8 +49,8 @@ func (l *Translator) NewTranslator() {
 }
 
 // Trans used to translate any i18n string.
-func (l *Translator) Trans(lang string, msgId string) string {
-	message, err := l.MatchLocalizer(lang).LocalizeMessage(&i18n.Message{ID: msgId})
+func (l *Translator) Trans(ctx context.Context, msgId string) string {
+	message, err := l.MatchLocalizer(ctx.Value("lang").(string)).LocalizeMessage(&i18n.Message{ID: msgId})
 	if err != nil {
 		return msgId
 	}

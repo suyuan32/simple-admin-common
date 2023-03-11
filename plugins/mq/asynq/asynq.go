@@ -1,3 +1,17 @@
+// Copyright 2023 The Ryan SU Authors. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package asynq
 
 import (
@@ -11,12 +25,13 @@ import (
 
 // AsynqConf is the configuration struct for Asynq.
 type AsynqConf struct {
-	Addr        string `json:",default=127.0.0.1:6379"`
-	Pass        string `json:",optional"`
-	DB          int    `json:",optional,default=0"`
-	Concurrency int    `json:",optional,default=20"` // max concurrent process job task num
-	Enable      bool   `json:",default=true"`
-	Location    string `json:",optional,default="`
+	Addr         string `json:",default=127.0.0.1:6379"`
+	Pass         string `json:",optional"`
+	DB           int    `json:",optional,default=0"`
+	Concurrency  int    `json:",optional,default=20"` // max concurrent process job task num
+	Enable       bool   `json:",default=true"`
+	SyncInterval int    `json:",optional,default=10"` // seconds, this field specifies how often sync should happen
+	Location     string `json:",optional,default="`
 }
 
 // WithRedisConf sets redis configuration from RedisConf.
@@ -80,8 +95,8 @@ func (c AsynqConf) NewPeriodicTaskManager(provider asynq.PeriodicTaskConfigProvi
 		mgr, err := asynq.NewPeriodicTaskManager(
 			asynq.PeriodicTaskManagerOpts{
 				RedisConnOpt:               c.NewRedisOpt(),
-				PeriodicTaskConfigProvider: provider,         // this provider object is the interface to your config source
-				SyncInterval:               10 * time.Second, // this field specifies how often sync should happen
+				PeriodicTaskConfigProvider: provider,                                    // this provider object is the interface to your config source
+				SyncInterval:               time.Duration(c.SyncInterval) * time.Second, // this field specifies how often sync should happen
 			})
 		logx.Must(err)
 		return mgr

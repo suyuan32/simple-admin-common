@@ -29,9 +29,8 @@ type AsynqConf struct {
 	Pass         string `json:",optional"`
 	DB           int    `json:",optional,default=0"`
 	Concurrency  int    `json:",optional,default=20"` // max concurrent process job task num
-	Enable       bool   `json:",default=true"`
 	SyncInterval int    `json:",optional,default=10"` // seconds, this field specifies how often sync should happen
-	Location     string `json:",optional,default="`
+	Enable       bool   `json:",default=true"`
 }
 
 // WithRedisConf sets redis configuration from RedisConf.

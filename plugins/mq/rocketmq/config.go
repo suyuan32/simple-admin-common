@@ -26,6 +26,7 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
+// ProducerConf is the configuration of rocketmq producer.
 type ProducerConf struct {
 	NsResolver                 []string // resolver address e.g. 127.0.0.1:9876
 	GroupName                  string   `json:",optional"`
@@ -77,6 +78,7 @@ func (c *ProducerConf) Validate() error {
 	return nil
 }
 
+// MustNewProducer returns a producer. If there are errors, it will exist.
 func (c *ProducerConf) MustNewProducer() *rocketmq.Producer {
 	err := c.Validate()
 	logx.Must(err)
@@ -100,6 +102,7 @@ func (c *ProducerConf) MustNewProducer() *rocketmq.Producer {
 	return &p
 }
 
+// ConsumerConf is the configuration of rocketmq consumer.
 type ConsumerConf struct {
 	NsResolver            []string
 	GroupName             string
@@ -115,6 +118,7 @@ type ConsumerConf struct {
 	SecretKey             string
 }
 
+// Validate validates configurations.
 func (c *ConsumerConf) Validate() error {
 	if c.NsResolver == nil {
 		return errors.New("the revolver must not be empty")
@@ -146,6 +150,7 @@ func (c *ConsumerConf) Validate() error {
 	return nil
 }
 
+// MustNewPushConsumer returns a push consumer. If there are errors, it will exist.
 func (c *ConsumerConf) MustNewPushConsumer() *rocketmq.PushConsumer {
 	err := c.Validate()
 	logx.Must(err)
@@ -179,6 +184,7 @@ func (c *ConsumerConf) MustNewPushConsumer() *rocketmq.PushConsumer {
 	return &csm
 }
 
+// MustNewPullConsumer returns a pull consumer. If there are errors, it will exist.
 func (c *ConsumerConf) MustNewPullConsumer() *rocketmq.PullConsumer {
 	err := c.Validate()
 	logx.Must(err)

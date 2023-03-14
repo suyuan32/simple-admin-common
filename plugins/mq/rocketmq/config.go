@@ -77,7 +77,7 @@ func (c *ProducerConf) Validate() error {
 	return nil
 }
 
-func (c *ProducerConf) NewProducer() rocketmq.Producer {
+func (c *ProducerConf) MustNewProducer() *rocketmq.Producer {
 	err := c.Validate()
 	logx.Must(err)
 
@@ -97,7 +97,7 @@ func (c *ProducerConf) NewProducer() rocketmq.Producer {
 
 	logx.Must(err)
 
-	return p
+	return &p
 }
 
 type ConsumerConf struct {
@@ -146,7 +146,7 @@ func (c *ConsumerConf) Validate() error {
 	return nil
 }
 
-func (c *ConsumerConf) NewPushConsumer() rocketmq.PushConsumer {
+func (c *ConsumerConf) MustNewPushConsumer() *rocketmq.PushConsumer {
 	err := c.Validate()
 	logx.Must(err)
 
@@ -176,10 +176,10 @@ func (c *ConsumerConf) NewPushConsumer() rocketmq.PushConsumer {
 
 	logx.Must(err)
 
-	return csm
+	return &csm
 }
 
-func (c *ConsumerConf) NewPullConsumer() rocketmq.PullConsumer {
+func (c *ConsumerConf) MustNewPullConsumer() *rocketmq.PullConsumer {
 	err := c.Validate()
 	logx.Must(err)
 
@@ -195,7 +195,7 @@ func (c *ConsumerConf) NewPullConsumer() rocketmq.PullConsumer {
 		strategy = consumer.AllocateByAveragely
 	}
 
-	csm, err := rocketmq.NewPullConsumer(
+	pcsm, err := rocketmq.NewPullConsumer(
 		consumer.WithNsResolver(primitive.NewPassthroughResolver(c.NsResolver)),
 		consumer.WithGroupName(c.GroupName),
 		consumer.WithNamespace(c.Namespace),
@@ -209,5 +209,5 @@ func (c *ConsumerConf) NewPullConsumer() rocketmq.PullConsumer {
 
 	logx.Must(err)
 
-	return csm
+	return &pcsm
 }

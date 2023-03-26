@@ -32,22 +32,22 @@ import (
 type DatabaseConf struct {
 	Host         string
 	Port         int
-	Username     string `json:",optional"`
+	Username     string `json:",default=root"`
 	Password     string `json:",optional"`
-	DBName       string `json:",optional"`
+	DBName       string `json:",default=simple_admin"`
 	SSLMode      string `json:",optional"`
 	Type         string `json:",default=mysql,options=[mysql,postgres]"`
-	MaxOpenConns *int   `json:",optional,default=100"`
+	MaxOpenConns int    `json:",optional,default=100"`
 	Debug        bool   `json:",optional,default=false"`
 	CacheTime    int    `json:",optional,default=10"`
 }
 
-// NewCacheDriver returns a ent driver with cache.
+// NewCacheDriver returns an Ent driver with cache.
 func (c DatabaseConf) NewCacheDriver(redisConf redis2.RedisConf) *entcache.Driver {
 	db, err := sql.Open(c.Type, c.GetDSN())
 	logx.Must(err)
 
-	db.SetMaxOpenConns(*c.MaxOpenConns)
+	db.SetMaxOpenConns(c.MaxOpenConns)
 	driver := entsql.OpenDB(c.Type, db)
 
 	rdb := redis.NewClient(&redis.Options{Addr: redisConf.Host})
@@ -64,12 +64,12 @@ func (c DatabaseConf) NewCacheDriver(redisConf redis2.RedisConf) *entcache.Drive
 	return cacheDrv
 }
 
-// NewNoCacheDriver returns a ent driver without cache.
+// NewNoCacheDriver returns an Ent driver without cache.
 func (c DatabaseConf) NewNoCacheDriver() *entsql.Driver {
 	db, err := sql.Open(c.Type, c.GetDSN())
 	logx.Must(err)
 
-	db.SetMaxOpenConns(*c.MaxOpenConns)
+	db.SetMaxOpenConns(c.MaxOpenConns)
 	driver := entsql.OpenDB(c.Type, db)
 
 	return driver

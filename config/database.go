@@ -17,6 +17,8 @@ package config
 import (
 	"database/sql"
 	"fmt"
+	"github.com/pkg/errors"
+	"os"
 	"time"
 
 	"ariga.io/entcache"
@@ -24,6 +26,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/zeromicro/go-zero/core/logx"
 	redis2 "github.com/zeromicro/go-zero/core/stores/redis"
 )
@@ -32,22 +35,23 @@ import (
 type DatabaseConf struct {
 	Host         string
 	Port         int
-	Username     string `json:",optional"`
+	Username     string `json:",default=root"`
 	Password     string `json:",optional"`
-	DBName       string `json:",optional"`
+	DBName       string `json:",default=simple_admin"`
 	SSLMode      string `json:",optional"`
-	Type         string `json:",default=mysql,options=[mysql,postgres]"`
-	MaxOpenConns *int   `json:",optional,default=100"`
+	Type         string `json:",default=mysql,options=[mysql,postgres,sqlite3]"`
+	MaxOpenConns int    `json:",optional,default=100"`
 	Debug        bool   `json:",optional,default=false"`
 	CacheTime    int    `json:",optional,default=10"`
+	DBPath       string `json:",optional"`
 }
 
-// NewCacheDriver returns a ent driver with cache.
+// NewCacheDriver returns an Ent driver with cache.
 func (c DatabaseConf) NewCacheDriver(redisConf redis2.RedisConf) *entcache.Driver {
 	db, err := sql.Open(c.Type, c.GetDSN())
 	logx.Must(err)
 
-	db.SetMaxOpenConns(*c.MaxOpenConns)
+	db.SetMaxOpenConns(c.MaxOpenConns)
 	driver := entsql.OpenDB(c.Type, db)
 
 	rdb := redis.NewClient(&redis.Options{Addr: redisConf.Host})
@@ -64,12 +68,12 @@ func (c DatabaseConf) NewCacheDriver(redisConf redis2.RedisConf) *entcache.Drive
 	return cacheDrv
 }
 
-// NewNoCacheDriver returns a ent driver without cache.
+// NewNoCacheDriver returns an Ent driver without cache.
 func (c DatabaseConf) NewNoCacheDriver() *entsql.Driver {
 	db, err := sql.Open(c.Type, c.GetDSN())
 	logx.Must(err)
 
-	db.SetMaxOpenConns(*c.MaxOpenConns)
+	db.SetMaxOpenConns(c.MaxOpenConns)
 	driver := entsql.OpenDB(c.Type, db)
 
 	return driver
@@ -85,6 +89,29 @@ func (c DatabaseConf) PostgresDSN() string {
 	return fmt.Sprintf("postgresql://%s:%s@%s:%d/%s?sslmode=%s", c.Username, c.Password, c.Host, c.Port, c.DBName, c.SSLMode)
 }
 
+// SqliteDSN returns Sqlite DSN.
+func (c DatabaseConf) SqliteDSN() string {
+	if c.DBPath == "" {
+		logx.Must(errors.New("the database file path cannot be empty"))
+	}
+
+	if _, err := os.Stat(c.DBPath); os.IsNotExist(err) {
+		f, err := os.OpenFile(c.DBPath, os.O_CREATE|os.O_RDWR, 0600)
+		if err != nil {
+			logx.Must(fmt.Errorf("failed to create SQLite database file %q", c.DBPath))
+		}
+		if err := f.Close(); err != nil {
+			logx.Must(fmt.Errorf("failed to create SQLite database file %q", c.DBPath))
+		}
+	} else {
+		if err := os.Chmod(c.DBPath, 0660); err != nil {
+			logx.Must(fmt.Errorf("unable to set permission code on %s: %v", c.DBPath, err))
+		}
+	}
+
+	return fmt.Sprintf("file:%s?_busy_timeout=100000&_fk=1", c.DBPath)
+}
+
 // GetDSN returns DSN according to the database type.
 func (c DatabaseConf) GetDSN() string {
 	switch c.Type {
@@ -92,6 +119,8 @@ func (c DatabaseConf) GetDSN() string {
 		return c.MysqlDSN()
 	case "postgres":
 		return c.PostgresDSN()
+	case "sqlite3":
+		return c.SqliteDSN()
 	default:
 		return "mysql"
 	}

@@ -12,16 +12,16 @@ import (
 
 // Conf is the configuration structure for GORM.
 type Conf struct {
-	Type        string `json:",default=mysql"`        // type of database: mysql, postgres
-	Host        string `json:",default=localhost"`    // address
-	Port        int    `json:",default=3306"`         // port
-	Config      string `json:",optional"`             // extra config such as charset=utf8mb4&parseTime=True
-	DBName      string `json:",default=simple_admin"` // database name
-	Username    string `json:",default=root"`         // username
-	Password    string `json:",optional"`             // password
-	MaxIdleConn int    `json:",default=10"`           // the maximum number of connections in the idle connection pool
-	MaxOpenConn int    `json:",default=100"`          // the maximum number of open connections to the database
-	LogMode     string `json:",default=error"`        // open gorm's global logger
+	Type        string `json:",default=mysql,options=[mysql,postgres]"` // type of database: mysql, postgres
+	Host        string `json:",default=localhost"`                      // address
+	Port        int    `json:",default=3306"`                           // port
+	Config      string `json:",optional"`                               // extra config such as charset=utf8mb4&parseTime=True
+	DBName      string `json:",default=simple_admin"`                   // database name
+	Username    string `json:",default=root"`                           // username
+	Password    string `json:",optional"`                               // password
+	MaxIdleConn int    `json:",default=10"`                             // the maximum number of connections in the idle connection pool
+	MaxOpenConn int    `json:",default=100"`                            // the maximum number of open connections to the database
+	LogMode     string `json:",default=error"`                          // open gorm's global logger
 }
 
 // MysqlDSN returns the MySQL DSN link from the configuration.

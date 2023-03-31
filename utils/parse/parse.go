@@ -22,7 +22,7 @@ import (
 func ParseTags(lang string) []language.Tag {
 	tags, _, err := language.ParseAcceptLanguage(lang)
 	if err != nil {
-		logx.Error("parse language failed")
+		logx.Errorw("parse accept-language failed", logx.Field("detail", err))
 		return []language.Tag{language.Chinese}
 	}
 

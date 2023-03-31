@@ -50,7 +50,7 @@ func (r *RedisStore) UseWithCtx(ctx context.Context) base64Captcha.Store {
 func (r *RedisStore) Set(id string, value string) error {
 	err := r.Redis.Setex(r.PreKey+id, value, int(r.Expiration.Seconds()))
 	if err != nil {
-		logx.Error("util: RedisStoreSet Error!", err)
+		logx.Errorw("error occurs when captcha key sets to redis", logx.Field("detail", err))
 		return err
 	}
 	return nil
@@ -60,13 +60,13 @@ func (r *RedisStore) Set(id string, value string) error {
 func (r *RedisStore) Get(key string, clear bool) string {
 	val, err := r.Redis.Get(key)
 	if err != nil {
-		logx.Error("util: RedisStoreGet Error!", err)
+		logx.Errorw("error occurs when captcha key gets from redis", logx.Field("detail", err))
 		return ""
 	}
 	if clear {
 		_, err := r.Redis.Del(key)
 		if err != nil {
-			logx.Error("util: RedisStoreClear Error!", err)
+			logx.Errorw("error occurs when captcha key deletes from redis", logx.Field("detail", err))
 			return ""
 		}
 	}

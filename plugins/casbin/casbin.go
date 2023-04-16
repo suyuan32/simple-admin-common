@@ -22,7 +22,7 @@ import (
 	"github.com/casbin/casbin/v2/persist"
 	entadapter "github.com/casbin/ent-adapter"
 	rediswatcher "github.com/casbin/redis-watcher/v2"
-	redis2 "github.com/go-redis/redis/v8"
+	redis2 "github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )

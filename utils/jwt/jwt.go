@@ -20,6 +20,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
+// NewJwtToken returns the jwt token from the given data.
 func NewJwtToken(secretKey, uuid, roleString string, iat, seconds int64, roleIds []string) (string, error) {
 	claims := make(jwt.MapClaims)
 	claims["exp"] = iat + seconds

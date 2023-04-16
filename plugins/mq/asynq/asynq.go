@@ -89,7 +89,7 @@ func (c *AsynqConf) NewScheduler() *asynq.Scheduler {
 }
 
 // NewPeriodicTaskManager returns a periodic task manager from the configuration.
-func (c AsynqConf) NewPeriodicTaskManager(provider asynq.PeriodicTaskConfigProvider) *asynq.PeriodicTaskManager {
+func (c *AsynqConf) NewPeriodicTaskManager(provider asynq.PeriodicTaskConfigProvider) *asynq.PeriodicTaskManager {
 	if c.Enable {
 		mgr, err := asynq.NewPeriodicTaskManager(
 			asynq.PeriodicTaskManagerOpts{

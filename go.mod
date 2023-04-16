@@ -4,11 +4,11 @@ go 1.20
 
 require (
 	ariga.io/entcache v0.1.1-0.20220825100256-1b8bbeb21c75
-	entgo.io/ent v0.12.0
+	entgo.io/ent v0.12.1
 	github.com/apache/rocketmq-client-go/v2 v2.1.1
-	github.com/casbin/casbin/v2 v2.66.0
+	github.com/casbin/casbin/v2 v2.66.1
 	github.com/casbin/ent-adapter v0.3.0
-	github.com/casbin/redis-watcher/v2 v2.4.1
+	github.com/casbin/redis-watcher/v2 v2.5.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.7.0
 	github.com/gofrs/uuid/v5 v5.0.0
@@ -23,14 +23,14 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.2
 	github.com/zeromicro/go-zero v1.5.1
-	go.mongodb.org/mongo-driver v1.11.4
-	golang.org/x/crypto v0.7.0
+	go.mongodb.org/mongo-driver v1.11.3
+	golang.org/x/crypto v0.8.0
 	golang.org/x/text v0.9.0
 	google.golang.org/grpc v1.54.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/mysql v1.4.7
 	gorm.io/driver/postgres v1.5.0
-	gorm.io/gorm v1.24.7-0.20230306060331-85eaf9eeda11
+	gorm.io/gorm v1.25.0
 )
 
 require (
@@ -98,6 +98,7 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
+	github.com/redis/go-redis/v9 v9.0.3 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
@@ -137,4 +138,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/zeromicro/go-zero v1.5.1 => github.com/suyuan32/simple-admin-tools v1.5.2
+replace github.com/zeromicro/go-zero v1.5.1 => github.com/suyuan32/simple-admin-tools v0.3.2

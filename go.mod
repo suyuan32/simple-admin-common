@@ -6,7 +6,7 @@ require (
 	ariga.io/entcache v0.1.1-0.20220825100256-1b8bbeb21c75
 	entgo.io/ent v0.12.1
 	github.com/apache/rocketmq-client-go/v2 v2.1.1
-	github.com/casbin/casbin/v2 v2.66.1
+	github.com/casbin/casbin/v2 v2.68.0
 	github.com/casbin/ent-adapter v0.3.0
 	github.com/casbin/redis-watcher/v2 v2.5.0
 	github.com/go-redis/redis/v8 v8.11.5

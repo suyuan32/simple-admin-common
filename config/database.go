@@ -81,7 +81,7 @@ func (c DatabaseConf) NewNoCacheDriver() *entsql.Driver {
 
 // MysqlDSN returns mysql DSN.
 func (c DatabaseConf) MysqlDSN() string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=True", c.Username, c.Password, c.Host, c.Port, c.DBName)
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=True&charset=utf8&loc=Asia/Shanghai", c.Username, c.Password, c.Host, c.Port, c.DBName)
 }
 
 // PostgresDSN returns Postgres DSN.

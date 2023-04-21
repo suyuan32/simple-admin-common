@@ -16,6 +16,7 @@ package captcha
 
 import (
 	"context"
+	"image/color"
 	"time"
 
 	"github.com/mojocn/base64Captcha"
@@ -78,4 +79,54 @@ func (r *RedisStore) Verify(id, answer string, clear bool) bool {
 	key := r.PreKey + id
 	v := r.Get(key, clear)
 	return v == answer
+}
+
+// MustNewRedisCaptcha returns the captcha using redis, it will exit when error occur
+func MustNewRedisCaptcha(c Conf, r *redis.Redis) *base64Captcha.Captcha {
+	driver := NewDriver(c)
+
+	store := NewRedisStore(r)
+
+	return base64Captcha.NewCaptcha(driver, store)
+}
+
+func NewDriver(c Conf) base64Captcha.Driver {
+	var driver base64Captcha.Driver
+
+	bgColor := &color.RGBA{
+		R: 254,
+		G: 254,
+		B: 254,
+		A: 254,
+	}
+
+	fonts := []string{
+		"3Dumb.ttf",
+		"ApothecaryFont.ttf",
+		"Comismsh.ttf",
+		"DENNEthree-dee.ttf",
+		"DeborahFancyDress.ttf",
+		"Flim-Flam.ttf",
+		"RitaSmith.ttf",
+		"actionj.ttf",
+		"chromohv.ttf",
+	}
+
+	switch c.Driver {
+	case "digit":
+		driver = base64Captcha.NewDriverDigit(c.ImgHeight, c.ImgWidth,
+			c.KeyLong, 0.7, 80)
+	case "string":
+		driver = base64Captcha.NewDriverString(c.ImgHeight, c.ImgWidth, 0, 0, c.KeyLong,
+			"qwertyupasdfghjkzxcvbnm23456789",
+			bgColor, nil, fonts)
+	case "math":
+		driver = base64Captcha.NewDriverMath(c.ImgHeight, c.ImgWidth, 0, 0, bgColor,
+			nil, fonts)
+	default:
+		driver = base64Captcha.NewDriverDigit(c.ImgHeight, c.ImgWidth,
+			c.KeyLong, 0.7, 80)
+	}
+
+	return driver
 }

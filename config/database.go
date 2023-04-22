@@ -17,9 +17,10 @@ package config
 import (
 	"database/sql"
 	"fmt"
-	"github.com/pkg/errors"
 	"os"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"ariga.io/entcache"
 	entsql "entgo.io/ent/dialect/sql"
@@ -45,7 +46,9 @@ type DatabaseConf struct {
 	CacheTime    int    `json:",optional,default=10"`
 	DBPath       string `json:",optional"`
 	// only config dsn to mysql
-	MysqlConfig string `json:",optional,default=&charset=utf8&loc=Asia/Shanghai"`
+	MysqlConfig  string `json:",optional,default=&charset=utf8&loc=Asia/Shanghai"`
+	PGConfig     string `json:",optional"`
+	SqliteConfig string `json:",optional"`
 }
 
 // NewCacheDriver returns an Ent driver with cache.
@@ -88,7 +91,8 @@ func (c DatabaseConf) MysqlDSN() string {
 
 // PostgresDSN returns Postgres DSN.
 func (c DatabaseConf) PostgresDSN() string {
-	return fmt.Sprintf("postgresql://%s:%s@%s:%d/%s?sslmode=%s", c.Username, c.Password, c.Host, c.Port, c.DBName, c.SSLMode)
+	return fmt.Sprintf("postgresql://%s:%s@%s:%d/%s?sslmode=%s%s", c.Username, c.Password, c.Host, c.Port, c.DBName,
+		c.SSLMode, c.PGConfig)
 }
 
 // SqliteDSN returns Sqlite DSN.
@@ -111,7 +115,7 @@ func (c DatabaseConf) SqliteDSN() string {
 		}
 	}
 
-	return fmt.Sprintf("file:%s?_busy_timeout=100000&_fk=1", c.DBPath)
+	return fmt.Sprintf("file:%s?_busy_timeout=100000&_fk=1%s", c.DBPath, c.SqliteConfig)
 }
 
 // GetDSN returns DSN according to the database type.

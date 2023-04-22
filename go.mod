@@ -95,7 +95,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pelletier/go-toml/v2 v2.0.7 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_golang v1.14.0 // indirect
+	github.com/prometheus/client_golang v1.15.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
@@ -138,4 +138,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/zeromicro/go-zero v1.5.1 => github.com/suyuan32/simple-admin-tools v0.3.2
+replace github.com/zeromicro/go-zero v1.5.1 => github.com/suyuan32/simple-admin-tools v1.5.3

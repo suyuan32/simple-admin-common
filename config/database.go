@@ -45,8 +45,7 @@ type DatabaseConf struct {
 	Debug        bool   `json:",optional,default=false"`
 	CacheTime    int    `json:",optional,default=10"`
 	DBPath       string `json:",optional"`
-	// only config dsn to mysql
-	MysqlConfig  string `json:",optional,default=&charset=utf8&loc=Asia/Shanghai"`
+	MysqlConfig  string `json:",optional"`
 	PGConfig     string `json:",optional"`
 	SqliteConfig string `json:",optional"`
 }

@@ -44,6 +44,8 @@ type DatabaseConf struct {
 	Debug        bool   `json:",optional,default=false"`
 	CacheTime    int    `json:",optional,default=10"`
 	DBPath       string `json:",optional"`
+	// only config dsn to mysql
+	MysqlConfig string `json:"optional,default=&charset=utf8&loc=Asia/Shanghai"`
 }
 
 // NewCacheDriver returns an Ent driver with cache.
@@ -81,7 +83,7 @@ func (c DatabaseConf) NewNoCacheDriver() *entsql.Driver {
 
 // MysqlDSN returns mysql DSN.
 func (c DatabaseConf) MysqlDSN() string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=True", c.Username, c.Password, c.Host, c.Port, c.DBName)
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=True%s", c.Username, c.Password, c.Host, c.Port, c.DBName, c.MysqlConfig)
 }
 
 // PostgresDSN returns Postgres DSN.

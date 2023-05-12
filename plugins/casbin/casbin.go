@@ -27,8 +27,9 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
+// CasbinConf is the configuration structure for Casbin
 type CasbinConf struct {
-	ModelText string `json:"ModelText,optional"`
+	ModelText string `json:"ModelText,optional,env=CASBIN_MODEL_TEXT"`
 }
 
 // NewCasbin returns Casbin enforcer.

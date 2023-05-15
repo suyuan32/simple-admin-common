@@ -34,20 +34,19 @@ import (
 
 // DatabaseConf stores database configurations.
 type DatabaseConf struct {
-	Host         string
-	Port         int
-	Username     string `json:",default=root"`
-	Password     string `json:",optional"`
-	DBName       string `json:",default=simple_admin"`
-	SSLMode      string `json:",optional"`
-	Type         string `json:",default=mysql,options=[mysql,postgres,sqlite3]"`
-	MaxOpenConns int    `json:",optional,default=100"`
-	Debug        bool   `json:",optional,default=false"`
-	CacheTime    int    `json:",optional,default=10"`
-	DBPath       string `json:",optional"`
-	MysqlConfig  string `json:",optional"`
-	PGConfig     string `json:",optional"`
-	SqliteConfig string `json:",optional"`
+	Host         string `json:",env=DATABASE_HOST"`
+	Port         int    `json:",env=DATABASE_PORT"`
+	Username     string `json:",default=root,env=DATABASE_USERNAME"`
+	Password     string `json:",optional,env=DATABASE_PASSWORD"`
+	DBName       string `json:",default=simple_admin,env=DATABASE_DBNAME"`
+	SSLMode      string `json:",optional,env=DATABASE_SSL_MODE"`
+	Type         string `json:",default=mysql,options=[mysql,postgres,sqlite3],env=DATABASE_TYPE"`
+	MaxOpenConn  int    `json:",optional,default=100,env=DATABASE_MAX_OPEN_CONN"`
+	CacheTime    int    `json:",optional,default=10,env=DATABASE_CACHE_TIME"`
+	DBPath       string `json:",optional,env=DATABASE_DBPATH"`
+	MysqlConfig  string `json:",optional,env=DATABASE_MYSQL_CONFIG"`
+	PGConfig     string `json:",optional,env=DATABASE_PG_CONFIG"`
+	SqliteConfig string `json:",optional,env=DATABASE_SQLITE_CONFIG"`
 }
 
 // NewCacheDriver returns an Ent driver with cache.
@@ -55,7 +54,7 @@ func (c DatabaseConf) NewCacheDriver(redisConf redis2.RedisConf) *entcache.Drive
 	db, err := sql.Open(c.Type, c.GetDSN())
 	logx.Must(err)
 
-	db.SetMaxOpenConns(c.MaxOpenConns)
+	db.SetMaxOpenConns(c.MaxOpenConn)
 	driver := entsql.OpenDB(c.Type, db)
 
 	rdb := redis.NewClient(&redis.Options{Addr: redisConf.Host})
@@ -77,7 +76,7 @@ func (c DatabaseConf) NewNoCacheDriver() *entsql.Driver {
 	db, err := sql.Open(c.Type, c.GetDSN())
 	logx.Must(err)
 
-	db.SetMaxOpenConns(c.MaxOpenConns)
+	db.SetMaxOpenConns(c.MaxOpenConn)
 	driver := entsql.OpenDB(c.Type, db)
 
 	return driver

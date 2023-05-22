@@ -24,7 +24,7 @@ require (
 	github.com/nicksnyder/go-i18n/v2 v2.2.1
 	github.com/pkg/errors v0.9.1
 	github.com/redis/go-redis/v9 v9.0.4
-	github.com/stretchr/testify v1.8.2
+	github.com/stretchr/testify v1.8.3
 	github.com/zeromicro/go-zero v1.5.2
 	go.mongodb.org/mongo-driver v1.11.6
 	golang.org/x/crypto v0.8.0

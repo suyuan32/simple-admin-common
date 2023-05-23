@@ -2,7 +2,7 @@ module github.com/suyuan32/simple-admin-common
 
 go 1.20
 
-replace github.com/zeromicro/go-zero v1.5.2 => github.com/suyuan32/simple-admin-tools v1.5.6
+replace github.com/zeromicro/go-zero v1.5.2 => github.com/suyuan32/simple-admin-tools v1.5.7
 
 require (
 	ariga.io/entcache v0.1.1-0.20230414114609-164fed2e1c70
@@ -24,7 +24,7 @@ require (
 	github.com/nicksnyder/go-i18n/v2 v2.2.1
 	github.com/pkg/errors v0.9.1
 	github.com/redis/go-redis/v9 v9.0.4
-	github.com/stretchr/testify v1.8.2
+	github.com/stretchr/testify v1.8.3
 	github.com/zeromicro/go-zero v1.5.2
 	go.mongodb.org/mongo-driver v1.11.6
 	golang.org/x/crypto v0.8.0
@@ -117,7 +117,7 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
 	github.com/zclconf/go-cty v1.13.1 // indirect
 	go.opentelemetry.io/otel v1.15.1 // indirect
-	go.opentelemetry.io/otel/exporters/jaeger v1.15.0 // indirect
+	go.opentelemetry.io/otel/exporters/jaeger v1.15.1 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.15.1 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.15.1 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.15.1 // indirect

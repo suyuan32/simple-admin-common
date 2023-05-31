@@ -23,7 +23,7 @@ require (
 	github.com/mojocn/base64Captcha v1.3.5
 	github.com/nicksnyder/go-i18n/v2 v2.2.1
 	github.com/pkg/errors v0.9.1
-	github.com/redis/go-redis/v9 v9.0.4
+	github.com/redis/go-redis/v9 v9.0.5
 	github.com/stretchr/testify v1.8.3
 	github.com/zeromicro/go-zero v1.5.2
 	go.mongodb.org/mongo-driver v1.11.6

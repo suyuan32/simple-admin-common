@@ -121,3 +121,22 @@ func NewTranslator(file embed.FS) *Translator {
 	trans.NewTranslator()
 	return trans
 }
+
+// NewTranslatorByPaths returns a translator by FilePath.
+func NewTranslatorByPaths(paths ...string) *Translator {
+	trans := &Translator{}
+	trans.NewBundleByPaths(paths...)
+	trans.NewTranslator()
+	return trans
+}
+
+// NewBundleByPaths returns a bundle by FilePath.
+func (l *Translator) NewBundleByPaths(paths ...string) {
+	bundle := i18n.NewBundle(language.Chinese)
+	bundle.RegisterUnmarshalFunc("json", json.Unmarshal)
+	for _, path := range paths {
+		_, err := bundle.LoadMessageFile(path)
+		logx.Must(err)
+	}
+	l.bundle = bundle
+}

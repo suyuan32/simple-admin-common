@@ -28,3 +28,13 @@ func TestTranslator(t *testing.T) {
 	res := l.Trans(context.WithValue(context.Background(), "lang", "zh"), "common.success")
 	assert.Equal(t, "成功", res)
 }
+
+func TestNewTranslatorByPaths(t *testing.T) {
+	l := NewTranslatorByPaths("locale/zh.json", "locale/en.json")
+
+	res := l.Trans(context.WithValue(context.Background(), "lang", "zh"), "common.success")
+	assert.Equal(t, "成功", res)
+
+	res = l.Trans(context.WithValue(context.Background(), "lang", "en"), "common.success")
+	assert.Equal(t, "Successfully", res)
+}

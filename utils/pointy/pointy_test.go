@@ -9,7 +9,7 @@ import (
 func TestGetPointer(t *testing.T) {
 	var dataIntOrigin int = 1
 	dataInt := GetPointer(dataIntOrigin)
-	assert.Equal(t, 1, *dataInt)
+	assert.Equal(t, dataIntOrigin, *dataInt)
 
 	var dataUintOrigin uint = 1
 	dataUint := GetPointer(dataUintOrigin)

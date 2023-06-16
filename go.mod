@@ -2,7 +2,7 @@ module github.com/suyuan32/simple-admin-common
 
 go 1.20
 
-replace github.com/zeromicro/go-zero v1.5.2 => github.com/suyuan32/simple-admin-tools v1.5.8
+replace github.com/zeromicro/go-zero v1.5.3 => github.com/suyuan32/simple-admin-tools v1.5.9
 
 require (
 	ariga.io/entcache v0.1.1-0.20230414114609-164fed2e1c70
@@ -25,7 +25,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/redis/go-redis/v9 v9.0.5
 	github.com/stretchr/testify v1.8.4
-	github.com/zeromicro/go-zero v1.5.2
+	github.com/zeromicro/go-zero v1.5.3
 	go.mongodb.org/mongo-driver v1.11.7
 	golang.org/x/crypto v0.9.0
 	golang.org/x/text v0.9.0
@@ -93,7 +93,7 @@ require (
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/openzipkin/zipkin-go v0.4.1 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
-	github.com/pelletier/go-toml/v2 v2.0.7 // indirect
+	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.15.1 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect

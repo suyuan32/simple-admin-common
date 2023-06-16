@@ -8,12 +8,12 @@ func GetPointer[T comparable](value T) *T {
 }
 
 // GetStatusPointer returns the status pointer in rpc
-func GetStatusPointer(value *uint32) *uint8 {
+func GetStatusPointer(value *uint32) (result *uint8) {
 	if value == nil {
 		return nil
 	}
 
-	var result *uint8
+	result = new(uint8)
 
 	*result = uint8(*value)
 
@@ -21,12 +21,12 @@ func GetStatusPointer(value *uint32) *uint8 {
 }
 
 // GetTimePointer returns the time pointer from int64
-func GetTimePointer(value *int64, nsec int64) *time.Time {
+func GetTimePointer(value *int64, nsec int64) (result *time.Time) {
 	if value == nil {
 		return nil
 	}
 
-	var result *time.Time
+	result = new(time.Time)
 
 	*result = time.Unix(*value, nsec)
 

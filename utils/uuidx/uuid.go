@@ -68,8 +68,12 @@ func ParseUUIDSliceToPointer(ids []string) []*uuid.UUID {
 }
 
 // ParseUUIDStringToPointer parses UUID string to UUID pointer.
-func ParseUUIDStringToPointer(id string) *uuid.UUID {
-	result, err := uuid.FromString(id)
+func ParseUUIDStringToPointer(id *string) *uuid.UUID {
+	if id == nil {
+		return nil
+	}
+
+	result, err := uuid.FromString(*id)
 	if err != nil {
 		logx.Errorw("fail to parse string to UUID", logx.Field("detail", err))
 		return nil

@@ -8,7 +8,7 @@ require (
 	ariga.io/entcache v0.1.1-0.20230414114609-164fed2e1c70
 	entgo.io/ent v0.12.3
 	github.com/apache/rocketmq-client-go/v2 v2.1.1
-	github.com/casbin/casbin/v2 v2.70.0
+	github.com/casbin/casbin/v2 v2.71.1
 	github.com/casbin/ent-adapter v0.3.0
 	github.com/casbin/redis-watcher/v2 v2.5.0
 	github.com/go-redis/redis/v8 v8.11.5
@@ -27,9 +27,9 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/zeromicro/go-zero v1.5.3
 	go.mongodb.org/mongo-driver v1.11.7
-	golang.org/x/crypto v0.9.0
+	golang.org/x/crypto v0.10.0
 	golang.org/x/text v0.10.0
-	google.golang.org/grpc v1.55.0
+	google.golang.org/grpc v1.56.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/mysql v1.5.1
 	gorm.io/driver/postgres v1.5.2
@@ -131,9 +131,9 @@ require (
 	golang.org/x/mod v0.10.0 // indirect
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.8.0 // indirect
+	golang.org/x/sys v0.9.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	google.golang.org/genproto v0.0.0-20230306155012-7f2fa6fef1f4 // indirect
+	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

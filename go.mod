@@ -2,7 +2,7 @@ module github.com/suyuan32/simple-admin-common
 
 go 1.20
 
-replace github.com/zeromicro/go-zero v1.5.3 => github.com/suyuan32/simple-admin-tools v1.5.10
+replace github.com/zeromicro/go-zero v1.5.3 => github.com/suyuan32/simple-admin-tools v1.5.11
 
 require (
 	ariga.io/entcache v0.1.1-0.20230414114609-164fed2e1c70
@@ -134,7 +134,7 @@ require (
 	golang.org/x/sys v0.9.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
-	google.golang.org/protobuf v1.30.0 // indirect
+	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

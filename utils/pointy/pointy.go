@@ -7,6 +7,14 @@ func GetPointer[T comparable](value T) *T {
 	return &value
 }
 
+// GetSlicePointer returns pointer from comparable type slice
+func GetSlicePointer[T comparable](value []T) (result []*T) {
+	for _, v := range value {
+		result = append(result, GetPointer(v))
+	}
+	return result
+}
+
 // GetStatusPointer returns the status pointer in rpc
 func GetStatusPointer(value *uint32) (result *uint8) {
 	if value == nil {

@@ -2,7 +2,7 @@ module github.com/suyuan32/simple-admin-common
 
 go 1.20
 
-replace github.com/zeromicro/go-zero v1.5.3 => github.com/suyuan32/simple-admin-tools v1.5.13
+replace github.com/zeromicro/go-zero v1.5.4 => github.com/suyuan32/simple-admin-tools v1.5.13
 
 require (
 	ariga.io/entcache v0.1.1-0.20230414114609-164fed2e1c70
@@ -25,7 +25,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/redis/go-redis/v9 v9.0.5
 	github.com/stretchr/testify v1.8.4
-	github.com/zeromicro/go-zero v1.5.3
+	github.com/zeromicro/go-zero v1.5.4
 	go.mongodb.org/mongo-driver v1.12.0
 	golang.org/x/crypto v0.11.0
 	golang.org/x/text v0.11.0

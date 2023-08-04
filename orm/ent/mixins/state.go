@@ -15,37 +15,24 @@
 package mixins
 
 import (
-	"entgo.io/ent/dialect/entsql"
-	"time"
-
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/mixin"
-	"github.com/gofrs/uuid/v5"
-
-	uuid2 "github.com/suyuan32/simple-admin-common/utils/uuidx"
 )
 
-// UUIDMixin implements the ent.Mixin for sharing
-// UUID fields with package schemas.
-type UUIDMixin struct {
-	// We embed the `mixin.Schema` to avoid
-	// implementing the rest of the methods.
+// StateMixin implements the ent.Mixin for sharing
+// state fields with package schemas.
+type StateMixin struct {
 	mixin.Schema
 }
 
-func (UUIDMixin) Fields() []ent.Field {
+func (StateMixin) Fields() []ent.Field {
 	return []ent.Field{
-		field.UUID("id", uuid.UUID{}).Default(uuid2.NewUUID).Comment("UUID"),
-		field.Time("created_at").
-			Immutable().
-			Default(time.Now).
-			Comment("Create Time | 创建日期").
-			Annotations(entsql.WithComments(true)),
-		field.Time("updated_at").
-			Default(time.Now).
-			UpdateDefault(time.Now).
-			Comment("Update Time | 修改日期").
+		field.Bool("state").
+			Default(true).
+			Optional().
+			Comment("state true: normal false: ban | 状态 true 正常 false 禁用").
 			Annotations(entsql.WithComments(true)),
 	}
 }

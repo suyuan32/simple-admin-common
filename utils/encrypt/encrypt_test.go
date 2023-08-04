@@ -39,3 +39,29 @@ func TestEncrypt(t *testing.T) {
 		assert.Equal(t, result, true)
 	}
 }
+
+func TestBcryptCheck(t *testing.T) {
+	type args struct {
+		password string
+		hash     string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "test1",
+			args: args{
+				password: "simple-admin",
+				hash:     "$2a$10$RGY8FVLUSKNMdKQr/y2oi.kh4r/ns6hbpJc.0RP56jd3gazeOJa42",
+			},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, BcryptCheck(tt.args.password, tt.args.hash), "BcryptCheck(%v, %v)", tt.args.password, tt.args.hash)
+		})
+	}
+}

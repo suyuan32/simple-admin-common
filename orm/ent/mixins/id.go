@@ -23,11 +23,9 @@ import (
 	"entgo.io/ent/schema/mixin"
 )
 
-// IDMixin implements the ent.Mixin for sharing
-// base fields with package schemas.
+// IDMixin is the mixin with uint64 type ID field
+// and the created_at, updated_at fields.
 type IDMixin struct {
-	// We embed the `mixin.Schema` to avoid
-	// implementing the rest of the methods.
 	mixin.Schema
 }
 

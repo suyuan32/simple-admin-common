@@ -21,8 +21,8 @@ import (
 	"entgo.io/ent/schema/mixin"
 )
 
-// StateMixin implements the ent.Mixin for sharing
-// state fields with package schemas.
+// StateMixin is the mixin with state field which
+// is bool type.
 type StateMixin struct {
 	mixin.Schema
 }

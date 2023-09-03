@@ -21,11 +21,9 @@ import (
 	"entgo.io/ent/schema/mixin"
 )
 
-// SortMixin implements the ent.Mixin for sharing
-// sort fields with package schemas.
+// SortMixin is the mixin with sort field which
+// is used to sort the data.
 type SortMixin struct {
-	// We embed the `mixin.Schema` to avoid
-	// implementing the rest of the methods.
 	mixin.Schema
 }
 

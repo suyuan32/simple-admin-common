@@ -26,11 +26,8 @@ import (
 	uuid2 "github.com/suyuan32/simple-admin-common/utils/uuidx"
 )
 
-// UUIDMixin implements the ent.Mixin for sharing
-// UUID fields with package schemas.
+// UUIDMixin is the mixin with uuid v7 field which is used for universal unique.
 type UUIDMixin struct {
-	// We embed the `mixin.Schema` to avoid
-	// implementing the rest of the methods.
 	mixin.Schema
 }
 

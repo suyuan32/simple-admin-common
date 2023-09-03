@@ -2,13 +2,13 @@ module github.com/suyuan32/simple-admin-common
 
 go 1.20
 
-replace github.com/zeromicro/go-zero v1.5.4 => github.com/suyuan32/simple-admin-tools v1.5.15
+replace github.com/zeromicro/go-zero v1.5.5 => github.com/suyuan32/simple-admin-tools v1.5.16
 
 require (
 	ariga.io/entcache v0.1.1-0.20230414114609-164fed2e1c70
 	entgo.io/ent v0.12.3
 	github.com/apache/rocketmq-client-go/v2 v2.1.1
-	github.com/casbin/casbin/v2 v2.75.0
+	github.com/casbin/casbin/v2 v2.77.2
 	github.com/casbin/ent-adapter v0.3.0
 	github.com/casbin/redis-watcher/v2 v2.5.0
 	github.com/go-redis/redis/v8 v8.11.5
@@ -25,15 +25,15 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/redis/go-redis/v9 v9.1.0
 	github.com/stretchr/testify v1.8.4
-	github.com/zeromicro/go-zero v1.5.4
+	github.com/zeromicro/go-zero v1.5.5
 	go.mongodb.org/mongo-driver v1.12.1
 	golang.org/x/crypto v0.12.0
-	golang.org/x/text v0.12.0
+	golang.org/x/text v0.13.0
 	google.golang.org/grpc v1.57.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/mysql v1.5.1
 	gorm.io/driver/postgres v1.5.2
-	gorm.io/gorm v1.25.3
+	gorm.io/gorm v1.25.4
 )
 
 require (
@@ -58,7 +58,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
-	github.com/google/uuid v1.3.0 // indirect
+	github.com/google/uuid v1.3.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.15.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect
@@ -75,7 +75,7 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/pgtype v1.14.0 // indirect
 	github.com/jackc/pgx/v4 v4.18.1 // indirect
-	github.com/jackc/pgx/v5 v5.3.1 // indirect
+	github.com/jackc/pgx/v5 v5.4.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -93,7 +93,7 @@ require (
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/openzipkin/zipkin-go v0.4.1 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
-	github.com/pelletier/go-toml/v2 v2.0.9 // indirect
+	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.16.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
@@ -131,7 +131,7 @@ require (
 	golang.org/x/image v0.5.0 // indirect
 	golang.org/x/mod v0.10.0 // indirect
 	golang.org/x/net v0.14.0 // indirect
-	golang.org/x/sync v0.2.0 // indirect
+	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/genproto v0.0.0-20230526161137-0005af68ea54 // indirect

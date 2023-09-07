@@ -17,7 +17,7 @@ func TestStripBearerPrefixFromToken(t *testing.T) {
 			want: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTQyMjExMzksImlhdCI6MTY5Mzk2MTkzOSwicm9sZUlkIjoiMDAxIiwidXNlcklkIjoiMDE4YTY3ZmYtODgxOS03NmI4LWE5MzAtMWIxMzRjZjFjMWFmIn0.wURcTLPsO1EO-ok_-Uv2o0t3qq6iEDWbc7v7WmL--HQ",
 		},
 		{
-			name: "test1",
+			name: "test2",
 			args: args{token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTQyMjExMzksImlhdCI6MTY5Mzk2MTkzOSwicm9sZUlkIjoiMDAxIiwidXNlcklkIjoiMDE4YTY3ZmYtODgxOS03NmI4LWE5MzAtMWIxMzRjZjFjMWFmIn0.wURcTLPsO1EO-ok_-Uv2o0t3qq6iEDWbc7v7WmL--HQ"},
 			want: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTQyMjExMzksImlhdCI6MTY5Mzk2MTkzOSwicm9sZUlkIjoiMDAxIiwidXNlcklkIjoiMDE4YTY3ZmYtODgxOS03NmI4LWE5MzAtMWIxMzRjZjFjMWFmIn0.wURcTLPsO1EO-ok_-Uv2o0t3qq6iEDWbc7v7WmL--HQ",
 		},

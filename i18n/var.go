@@ -18,6 +18,7 @@ const (
 	ConstraintError  = "common.constraintError"
 	ValidationError  = "common.validationError"
 	NotSingularError = "common.notSingularError"
+	PermissionDeny   = "common.permissionDeny"
 
 	// front end msg
 	ApiRequestFailed = "sys.api.apiRequestFailed"

@@ -6,7 +6,7 @@ replace github.com/zeromicro/go-zero v1.5.5 => github.com/suyuan32/simple-admin-
 
 require (
 	ariga.io/entcache v0.1.1-0.20230414114609-164fed2e1c70
-	entgo.io/ent v0.12.3
+	entgo.io/ent v0.12.4
 	github.com/apache/rocketmq-client-go/v2 v2.1.1
 	github.com/casbin/casbin/v2 v2.77.2
 	github.com/casbin/ent-adapter v0.3.0
@@ -37,7 +37,7 @@ require (
 )
 
 require (
-	ariga.io/atlas v0.10.2-0.20230427182402-87a07dfb83bf // indirect
+	ariga.io/atlas v0.14.1-0.20230918065911-83ad451a4935 // indirect
 	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect

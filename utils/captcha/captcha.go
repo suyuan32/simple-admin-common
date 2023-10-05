@@ -117,12 +117,15 @@ func NewDriver(c Conf) base64Captcha.Driver {
 		driver = base64Captcha.NewDriverDigit(c.ImgHeight, c.ImgWidth,
 			c.KeyLong, 0.7, 80)
 	case "string":
-		driver = base64Captcha.NewDriverString(c.ImgHeight, c.ImgWidth, 0, 0, c.KeyLong,
+		driver = base64Captcha.NewDriverString(c.ImgHeight, c.ImgWidth, 1, 1, c.KeyLong,
 			"qwertyupasdfghjkzxcvbnm23456789",
 			bgColor, nil, fonts)
 	case "math":
-		driver = base64Captcha.NewDriverMath(c.ImgHeight, c.ImgWidth, 0, 0, bgColor,
+		driver = base64Captcha.NewDriverMath(c.ImgHeight, c.ImgWidth, 1, 1, bgColor,
 			nil, fonts)
+	case "chinese":
+		driver = base64Captcha.NewDriverChinese(c.ImgHeight, c.ImgWidth, 1, 1, c.KeyLong,
+			"天地玄黄宇宙洪荒日月盈辰宿列张寒来暑往秋收冬藏闰余成岁律吕调阳夫大水浸灌草木破坡石右云虫师军舰流浪数据速度", bgColor, nil, fonts)
 	default:
 		driver = base64Captcha.NewDriverDigit(c.ImgHeight, c.ImgWidth,
 			c.KeyLong, 0.7, 80)

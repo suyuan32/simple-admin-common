@@ -125,7 +125,8 @@ func NewDriver(c Conf) base64Captcha.Driver {
 			nil, fonts)
 	case "chinese":
 		driver = base64Captcha.NewDriverChinese(c.ImgHeight, c.ImgWidth, 1, 1, c.KeyLong,
-			"天地玄黄宇宙洪荒日月盈辰宿列张寒来暑往秋收冬藏闰余成岁律吕调阳夫大水浸灌草木破坡石右云虫师军舰流浪数据速度", bgColor, nil, fonts)
+			"天地玄黄宇宙洪荒日月盈辰宿列张寒来暑往秋收冬藏闰余成岁律吕调阳夫大水浸灌草木破坡石右云虫师军舰流浪数据速度", bgColor, nil,
+			[]string{"wqy-microhei.ttc"})
 		driver = driver.(*base64Captcha.DriverChinese).ConvertFonts()
 	default:
 		driver = base64Captcha.NewDriverDigit(c.ImgHeight, c.ImgWidth,

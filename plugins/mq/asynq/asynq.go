@@ -82,7 +82,7 @@ func (c *AsynqConf) NewServer() *asynq.Server {
 // NewScheduler returns a scheduler from the configuration.
 func (c *AsynqConf) NewScheduler() *asynq.Scheduler {
 	if c.Enable {
-		return asynq.NewScheduler(c.NewRedisOpt(), nil)
+		return asynq.NewScheduler(c.NewRedisOpt(), &asynq.SchedulerOpts{Location: time.Local})
 	} else {
 		return nil
 	}
@@ -93,6 +93,7 @@ func (c *AsynqConf) NewPeriodicTaskManager(provider asynq.PeriodicTaskConfigProv
 	if c.Enable {
 		mgr, err := asynq.NewPeriodicTaskManager(
 			asynq.PeriodicTaskManagerOpts{
+				SchedulerOpts:              &asynq.SchedulerOpts{Location: time.Local},
 				RedisConnOpt:               c.NewRedisOpt(),
 				PeriodicTaskConfigProvider: provider,                                    // this provider object is the interface to your config source
 				SyncInterval:               time.Duration(c.SyncInterval) * time.Second, // this field specifies how often sync should happen

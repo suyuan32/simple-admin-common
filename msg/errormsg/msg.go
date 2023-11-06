@@ -16,4 +16,6 @@ const (
 	DatabaseError      string = "database error"
 	RedisError         string = "redis error"
 	ServiceUnavailable string = "service is unavailable, please check if the service is enabled"
+	ServiceBusy        string = "service is busy, please try again later"
+	PermissionDeny     string = "no permission to access this service"
 )

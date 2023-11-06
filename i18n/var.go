@@ -33,6 +33,7 @@ const (
 	NotSingularError   = "common.notSingularError"
 	PermissionDeny     = "common.permissionDeny"
 	ServiceUnavailable = "common.serviceUnavailable"
+	ServiceBusy        = "common.serviceBusy"
 
 	ApiRequestFailed = "sys.api.apiRequestFailed"
 )

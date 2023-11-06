@@ -19,7 +19,7 @@ require (
 	github.com/hibiken/asynq v0.24.1
 	github.com/jpillora/backoff v1.0.0
 	github.com/lib/pq v1.10.9
-	github.com/mattn/go-sqlite3 v1.14.17
+	github.com/mattn/go-sqlite3 v1.14.18
 	github.com/mojocn/base64Captcha v1.3.5
 	github.com/nicksnyder/go-i18n/v2 v2.2.2
 	github.com/pkg/errors v0.9.1
@@ -28,7 +28,7 @@ require (
 	github.com/zeromicro/go-zero v1.6.0
 	go.mongodb.org/mongo-driver v1.12.1
 	golang.org/x/crypto v0.14.0
-	golang.org/x/text v0.13.0
+	golang.org/x/text v0.14.0
 	google.golang.org/grpc v1.59.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/mysql v1.5.2

@@ -6,7 +6,7 @@ replace github.com/zeromicro/go-zero v1.6.0 => github.com/suyuan32/simple-admin-
 
 require (
 	ariga.io/entcache v0.1.1-0.20230414114609-164fed2e1c70
-	entgo.io/ent v0.12.4
+	entgo.io/ent v0.12.5
 	github.com/apache/rocketmq-client-go/v2 v2.1.2
 	github.com/casbin/casbin/v2 v2.77.2
 	github.com/casbin/ent-adapter v0.3.0

@@ -6,7 +6,7 @@ replace github.com/zeromicro/go-zero v1.6.0 => github.com/suyuan32/simple-admin-
 
 require (
 	ariga.io/entcache v0.1.1-0.20230414114609-164fed2e1c70
-	entgo.io/ent v0.12.4
+	entgo.io/ent v0.12.5
 	github.com/apache/rocketmq-client-go/v2 v2.1.2
 	github.com/casbin/casbin/v2 v2.77.2
 	github.com/casbin/ent-adapter v0.3.0
@@ -26,8 +26,8 @@ require (
 	github.com/redis/go-redis/v9 v9.3.0
 	github.com/stretchr/testify v1.8.4
 	github.com/zeromicro/go-zero v1.6.0
-	go.mongodb.org/mongo-driver v1.12.1
-	golang.org/x/crypto v0.14.0
+	go.mongodb.org/mongo-driver v1.13.0
+	golang.org/x/crypto v0.15.0
 	golang.org/x/text v0.14.0
 	google.golang.org/grpc v1.59.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -130,7 +130,7 @@ require (
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/sys v0.14.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20231016165738-49dd2c1f3d0b // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231016165738-49dd2c1f3d0b // indirect

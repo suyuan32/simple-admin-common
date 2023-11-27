@@ -8,7 +8,7 @@ require (
 	ariga.io/entcache v0.1.1-0.20230414114609-164fed2e1c70
 	entgo.io/ent v0.12.5
 	github.com/apache/rocketmq-client-go/v2 v2.1.2
-	github.com/casbin/casbin/v2 v2.77.2
+	github.com/casbin/casbin/v2 v2.79.0
 	github.com/casbin/ent-adapter v0.3.0
 	github.com/casbin/redis-watcher/v2 v2.5.0
 	github.com/go-redis/redis/v8 v8.11.5
@@ -38,11 +38,11 @@ require (
 
 require (
 	ariga.io/atlas v0.14.1-0.20230918065911-83ad451a4935 // indirect
-	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/casbin/govaluate v1.1.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect

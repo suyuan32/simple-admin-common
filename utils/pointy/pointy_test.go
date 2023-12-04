@@ -1,6 +1,7 @@
 package pointy
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -38,6 +39,7 @@ func TestGetSlicePointer(t *testing.T) {
 func TestGetUnixMilliPointer(t *testing.T) {
 	var zeroTime time.Time
 	testTime := GetUnixMilliPointer(zeroTime.UnixMilli())
+	fmt.Println(testTime)
 	if testTime != nil {
 		t.Error("TestGetUnixMilliPointer: convert failed")
 	}

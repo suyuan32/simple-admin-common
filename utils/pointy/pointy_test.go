@@ -2,6 +2,7 @@ package pointy
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -32,4 +33,11 @@ func TestGetSlicePointer(t *testing.T) {
 	assert.Equal(t, strs[0], *strsPointer[0])
 	assert.Equal(t, strs[1], *strsPointer[1])
 	assert.Equal(t, strs[2], *strsPointer[2])
+}
+
+func TestGetUnixMilliPointer(t *testing.T) {
+	var zeroTime time.Time
+	testTime := GetUnixMilliPointer(zeroTime.UnixMilli())
+	var zero int64 = 0
+	assert.Equal(t, zero, *testTime)
 }

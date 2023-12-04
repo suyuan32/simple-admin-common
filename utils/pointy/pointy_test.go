@@ -38,6 +38,7 @@ func TestGetSlicePointer(t *testing.T) {
 func TestGetUnixMilliPointer(t *testing.T) {
 	var zeroTime time.Time
 	testTime := GetUnixMilliPointer(zeroTime.UnixMilli())
-	var zero int64 = 0
-	assert.Equal(t, zero, *testTime)
+	if testTime != nil {
+		t.Error("TestGetUnixMilliPointer: convert failed")
+	}
 }

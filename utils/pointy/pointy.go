@@ -57,7 +57,7 @@ func GetTimePointer(value *int64, nsec int64) (result *time.Time) {
 	return result
 }
 
-// GetUnixMilliPointer returns the zero when int64 is -621355968000, your time should not be from before 1970
+// GetUnixMilliPointer returns nil when int64 is -621355968000, your time should not be from before 1970
 //
 // Example:
 //
@@ -65,11 +65,10 @@ func GetTimePointer(value *int64, nsec int64) (result *time.Time) {
 //		zeroTimeP := GetUnixMilliPointer(zeroTime)
 //		fmt.Println(*zeroTimeP)
 //
-// Result:  0
+// Result:  nil
 func GetUnixMilliPointer(value int64) *int64 {
 	if value == zeroTime.UnixMilli() {
-		value = 0
-		return &value
+		return nil
 	}
 	return &value
 }

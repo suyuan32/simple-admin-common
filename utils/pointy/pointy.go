@@ -63,9 +63,9 @@ func GetTimePointer(value *int64, nsec int64) (result *time.Time) {
 //
 //	 var zeroTime time.Time
 //		zeroTimeP := GetUnixMilliPointer(zeroTime)
-//		fmt.Println(*zeroTimeP)
+//		fmt.Println(zeroTimeP)
 //
-// Result:  nil
+// Result:  <nil>
 func GetUnixMilliPointer(value int64) *int64 {
 	if value == zeroTime.UnixMilli() {
 		return nil

@@ -1,10 +1,8 @@
 module github.com/suyuan32/simple-admin-common
 
-go 1.21
+go 1.21.0
 
-toolchain go1.21.5
-
-replace github.com/zeromicro/go-zero v1.6.0 => github.com/suyuan32/simple-admin-tools v1.6.1
+replace github.com/zeromicro/go-zero v1.6.0 => github.com/suyuan32/simple-admin-tools v1.6.2
 
 require (
 	ariga.io/entcache v0.1.1-0.20230414114609-164fed2e1c70

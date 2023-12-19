@@ -12,6 +12,7 @@ import (
 )
 
 func TestClient(t *testing.T) {
+	t.Skip("skip test for client")
 	svcCfg := fmt.Sprintf(`{"loadBalancingPolicy":"%s"}`, "round_robin")
 	conn, err := grpc.Dial("consul://127.0.0.1:8500/gozero?wait=14s&tag=public", grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultServiceConfig(svcCfg))

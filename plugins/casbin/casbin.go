@@ -15,6 +15,7 @@
 package casbin
 
 import (
+	"github.com/suyuan32/simple-admin-common/config"
 	"log"
 
 	"github.com/casbin/casbin/v2"
@@ -106,6 +107,39 @@ func (l CasbinConf) MustNewRedisWatcher(c redis.RedisConf, f func(string2 string
 func (l CasbinConf) MustNewCasbinWithRedisWatcher(dbType, dsn string, c redis.RedisConf) *casbin.Enforcer {
 	cbn := l.MustNewCasbin(dbType, dsn)
 	w := l.MustNewRedisWatcher(c, func(data string) {
+		rediswatcher.DefaultUpdateCallback(cbn)(data)
+	})
+	err := cbn.SetWatcher(w)
+	logx.Must(err)
+	err = cbn.SavePolicy()
+	logx.Must(err)
+	return cbn
+}
+
+// MustNewOriginalRedisWatcher returns redis watcher which uses original go redis. If there are errors, it will exist.
+// f function will be called if the policies are updated.
+func (l CasbinConf) MustNewOriginalRedisWatcher(c config.RedisConf, f func(string2 string)) persist.Watcher {
+	w, err := rediswatcher.NewWatcher(c.Host, rediswatcher.WatcherOptions{
+		Options: redis2.Options{
+			Network:  "tcp",
+			Username: c.Username,
+			Password: c.Pass,
+		},
+		Channel:    "/casbin",
+		IgnoreSelf: false,
+	})
+	logx.Must(err)
+
+	err = w.SetUpdateCallback(f)
+	logx.Must(err)
+
+	return w
+}
+
+// MustNewCasbinWithOriginalRedisWatcher returns Casbin Enforcer with original Redis watcher.
+func (l CasbinConf) MustNewCasbinWithOriginalRedisWatcher(dbType, dsn string, c config.RedisConf) *casbin.Enforcer {
+	cbn := l.MustNewCasbin(dbType, dsn)
+	w := l.MustNewOriginalRedisWatcher(c, func(data string) {
 		rediswatcher.DefaultUpdateCallback(cbn)(data)
 	})
 	err := cbn.SetWatcher(w)

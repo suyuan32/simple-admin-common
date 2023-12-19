@@ -16,19 +16,21 @@ package captcha
 
 import (
 	"context"
+	"github.com/redis/go-redis/v9"
 	"image/color"
 	"time"
 
 	"github.com/mojocn/base64Captcha"
 	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
+const Prefix = "CAPTCHA:"
+
 // NewRedisStore returns a redis store for captcha.
-func NewRedisStore(r *redis.Redis) *RedisStore {
+func NewRedisStore(r *redis.Client) *RedisStore {
 	return &RedisStore{
 		Expiration: time.Minute * 5,
-		PreKey:     "CAPTCHA_",
+		PreKey:     Prefix,
 		Redis:      r,
 	}
 }
@@ -38,7 +40,7 @@ type RedisStore struct {
 	Expiration time.Duration
 	PreKey     string
 	Context    context.Context
-	Redis      *redis.Redis
+	Redis      *redis.Client
 }
 
 // UseWithCtx add context for captcha.
@@ -49,7 +51,7 @@ func (r *RedisStore) UseWithCtx(ctx context.Context) base64Captcha.Store {
 
 // Set sets the captcha KV to redis.
 func (r *RedisStore) Set(id string, value string) error {
-	err := r.Redis.Setex(r.PreKey+id, value, int(r.Expiration.Seconds()))
+	err := r.Redis.Set(context.Background(), r.PreKey+id, value, r.Expiration).Err()
 	if err != nil {
 		logx.Errorw("error occurs when captcha key sets to redis", logx.Field("detail", err))
 		return err
@@ -59,13 +61,13 @@ func (r *RedisStore) Set(id string, value string) error {
 
 // Get gets the captcha KV from redis.
 func (r *RedisStore) Get(key string, clear bool) string {
-	val, err := r.Redis.Get(key)
+	val, err := r.Redis.Get(context.Background(), key).Result()
 	if err != nil {
 		logx.Errorw("error occurs when captcha key gets from redis", logx.Field("detail", err))
 		return ""
 	}
 	if clear {
-		_, err := r.Redis.Del(key)
+		_, err := r.Redis.Del(context.Background(), key).Result()
 		if err != nil {
 			logx.Errorw("error occurs when captcha key deletes from redis", logx.Field("detail", err))
 			return ""
@@ -82,7 +84,7 @@ func (r *RedisStore) Verify(id, answer string, clear bool) bool {
 }
 
 // MustNewRedisCaptcha returns the captcha using redis, it will exit when error occur
-func MustNewRedisCaptcha(c Conf, r *redis.Redis) *base64Captcha.Captcha {
+func MustNewRedisCaptcha(c Conf, r *redis.Client) *base64Captcha.Captcha {
 	driver := NewDriver(c)
 
 	store := NewRedisStore(r)

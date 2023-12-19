@@ -16,6 +16,7 @@ package asynq
 
 import (
 	"fmt"
+	"github.com/suyuan32/simple-admin-common/config"
 	"time"
 
 	"github.com/hibiken/asynq"
@@ -26,6 +27,7 @@ import (
 // AsynqConf is the configuration struct for Asynq.
 type AsynqConf struct {
 	Addr         string `json:",default=127.0.0.1:6379"`
+	Username     string `json:",optional"`
 	Pass         string `json:",optional"`
 	DB           int    `json:",optional,default=0"`
 	Concurrency  int    `json:",optional,default=20"` // max concurrent process job task num
@@ -41,12 +43,21 @@ func (c *AsynqConf) WithRedisConf(r redis.RedisConf) *AsynqConf {
 	return c
 }
 
+// WithOriginalRedisConf sets redis configuration from original RedisConf.
+func (c *AsynqConf) WithOriginalRedisConf(r config.RedisConf) *AsynqConf {
+	c.Pass = r.Pass
+	c.Addr = r.Host
+	c.Username = r.Username
+	c.DB = r.Db
+	return c
+}
+
 // NewRedisOpt returns a redis options from Asynq Configuration.
 func (c *AsynqConf) NewRedisOpt() *asynq.RedisClientOpt {
 	return &asynq.RedisClientOpt{
 		Network:  "tcp",
 		Addr:     c.Addr,
-		Username: "",
+		Username: c.Username,
 		Password: c.Pass,
 		DB:       c.DB,
 	}

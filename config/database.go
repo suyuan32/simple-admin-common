@@ -17,19 +17,14 @@ package config
 import (
 	"database/sql"
 	"fmt"
-	"os"
-	"time"
-
 	"github.com/pkg/errors"
+	"os"
 
-	"ariga.io/entcache"
 	entsql "entgo.io/ent/dialect/sql"
-	"github.com/go-redis/redis/v8"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/zeromicro/go-zero/core/logx"
-	redis2 "github.com/zeromicro/go-zero/core/stores/redis"
 )
 
 // DatabaseConf stores database configurations.
@@ -47,28 +42,6 @@ type DatabaseConf struct {
 	MysqlConfig  string `json:",optional,env=DATABASE_MYSQL_CONFIG"`
 	PGConfig     string `json:",optional,env=DATABASE_PG_CONFIG"`
 	SqliteConfig string `json:",optional,env=DATABASE_SQLITE_CONFIG"`
-}
-
-// NewCacheDriver returns an Ent driver with cache.
-func (c DatabaseConf) NewCacheDriver(redisConf redis2.RedisConf) *entcache.Driver {
-	db, err := sql.Open(c.Type, c.GetDSN())
-	logx.Must(err)
-
-	db.SetMaxOpenConns(c.MaxOpenConn)
-	driver := entsql.OpenDB(c.Type, db)
-
-	rdb := redis.NewClient(&redis.Options{Addr: redisConf.Host})
-
-	cacheDrv := entcache.NewDriver(
-		driver,
-		entcache.TTL(time.Duration(c.CacheTime)*time.Second),
-		entcache.Levels(
-			entcache.NewLRU(256),
-			entcache.NewRedis(rdb),
-		),
-	)
-
-	return cacheDrv
 }
 
 // NewNoCacheDriver returns an Ent driver without cache.

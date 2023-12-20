@@ -13,7 +13,7 @@ import (
 func NewOriginalRedisStore(r *redis.Client) *OriginalRedisStore {
 	return &OriginalRedisStore{
 		Expiration: time.Minute * 5,
-		PreKey:     config.CaptchaPrefix,
+		PreKey:     config.RedisCaptchaPrefix,
 		Redis:      r,
 	}
 }

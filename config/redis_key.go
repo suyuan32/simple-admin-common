@@ -14,11 +14,11 @@
 
 package config
 
-// CaptchaPrefix is the prefix of captcha key in redis
-const CaptchaPrefix = "CAPTCHA:"
+// RedisCaptchaPrefix is the prefix of captcha key in redis
+const RedisCaptchaPrefix = "CAPTCHA:"
 
-// TokenPrefix is the prefix of blacklist token key in redis
-const TokenPrefix = "BLACKLIST:TOKEN:"
+// RedisTokenPrefix is the prefix of blacklist token key in redis
+const RedisTokenPrefix = "BLACKLIST:TOKEN:"
 
-// CasbinChannel is the channel of captcha key in redis
-const CasbinChannel = "/casbin"
+// RedisCasbinChannel is the channel of captcha key in redis
+const RedisCasbinChannel = "/casbin"

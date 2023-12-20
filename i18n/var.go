@@ -34,6 +34,7 @@ const (
 	PermissionDeny     = "common.permissionDeny"
 	ServiceUnavailable = "common.serviceUnavailable"
 	ServiceBusy        = "common.serviceBusy"
+	CacheError         = "common.cacheError"
 
 	ApiRequestFailed = "sys.api.apiRequestFailed"
 )

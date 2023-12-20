@@ -92,7 +92,7 @@ func (l CasbinConf) MustNewRedisWatcher(c redis.RedisConf, f func(string2 string
 			Network:  "tcp",
 			Password: c.Pass,
 		},
-		Channel:    config.CasbinChannel,
+		Channel:    config.RedisCasbinChannel,
 		IgnoreSelf: false,
 	})
 	logx.Must(err)

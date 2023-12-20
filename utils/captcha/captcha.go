@@ -15,79 +15,28 @@
 package captcha
 
 import (
-	"context"
-	"github.com/redis/go-redis/v9"
-	"image/color"
-	"time"
-
 	"github.com/mojocn/base64Captcha"
-	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/redis/go-redis/v9"
+	redis2 "github.com/zeromicro/go-zero/core/stores/redis"
+	"image/color"
 )
 
 const Prefix = "CAPTCHA:"
 
-// NewRedisStore returns a redis store for captcha.
-func NewRedisStore(r *redis.Client) *RedisStore {
-	return &RedisStore{
-		Expiration: time.Minute * 5,
-		PreKey:     Prefix,
-		Redis:      r,
-	}
-}
-
-// RedisStore stores captcha data.
-type RedisStore struct {
-	Expiration time.Duration
-	PreKey     string
-	Context    context.Context
-	Redis      *redis.Client
-}
-
-// UseWithCtx add context for captcha.
-func (r *RedisStore) UseWithCtx(ctx context.Context) base64Captcha.Store {
-	r.Context = ctx
-	return r
-}
-
-// Set sets the captcha KV to redis.
-func (r *RedisStore) Set(id string, value string) error {
-	err := r.Redis.Set(context.Background(), r.PreKey+id, value, r.Expiration).Err()
-	if err != nil {
-		logx.Errorw("error occurs when captcha key sets to redis", logx.Field("detail", err))
-		return err
-	}
-	return nil
-}
-
-// Get gets the captcha KV from redis.
-func (r *RedisStore) Get(key string, clear bool) string {
-	val, err := r.Redis.Get(context.Background(), key).Result()
-	if err != nil {
-		logx.Errorw("error occurs when captcha key gets from redis", logx.Field("detail", err))
-		return ""
-	}
-	if clear {
-		_, err := r.Redis.Del(context.Background(), key).Result()
-		if err != nil {
-			logx.Errorw("error occurs when captcha key deletes from redis", logx.Field("detail", err))
-			return ""
-		}
-	}
-	return val
-}
-
-// Verify verifies the captcha whether it is correct.
-func (r *RedisStore) Verify(id, answer string, clear bool) bool {
-	key := r.PreKey + id
-	v := r.Get(key, clear)
-	return v == answer
-}
-
 // MustNewRedisCaptcha returns the captcha using redis, it will exit when error occur
-func MustNewRedisCaptcha(c Conf, r *redis.Client) *base64Captcha.Captcha {
+func MustNewRedisCaptcha(c Conf, r *redis2.Redis) *base64Captcha.Captcha {
 	driver := NewDriver(c)
 
 	store := NewRedisStore(r)
+
+	return base64Captcha.NewCaptcha(driver, store)
+}
+
+// MustNewOriginalRedisCaptcha returns the captcha using original go redis, it will exit when error occur
+func MustNewOriginalRedisCaptcha(c Conf, r *redis.Client) *base64Captcha.Captcha {
+	driver := NewDriver(c)
+
+	store := NewOriginalRedisStore(r)
 
 	return base64Captcha.NewCaptcha(driver, store)
 }

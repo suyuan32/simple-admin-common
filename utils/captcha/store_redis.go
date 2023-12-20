@@ -3,6 +3,7 @@ package captcha
 import (
 	"context"
 	"github.com/mojocn/base64Captcha"
+	"github.com/suyuan32/simple-admin-common/config"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"time"
@@ -12,7 +13,7 @@ import (
 func NewRedisStore(r *redis.Redis) *RedisStore {
 	return &RedisStore{
 		Expiration: time.Minute * 5,
-		PreKey:     Prefix,
+		PreKey:     config.CaptchaPrefix,
 		Redis:      r,
 	}
 }

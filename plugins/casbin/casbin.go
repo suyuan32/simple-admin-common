@@ -1,4 +1,4 @@
-// Copyright 2023 The Ryan SU Authors. All Rights Reserved.
+// Copyright 2023 The Ryan SU Authors (https://github.com/suyuan32). All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -92,7 +92,7 @@ func (l CasbinConf) MustNewRedisWatcher(c redis.RedisConf, f func(string2 string
 			Network:  "tcp",
 			Password: c.Pass,
 		},
-		Channel:    "/casbin",
+		Channel:    config.CasbinChannel,
 		IgnoreSelf: false,
 	})
 	logx.Must(err)

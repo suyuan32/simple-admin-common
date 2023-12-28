@@ -10,7 +10,7 @@ import (
 )
 
 // NewOriginalRedisStore returns a redis store for captcha.
-func NewOriginalRedisStore(r *redis.Client) *OriginalRedisStore {
+func NewOriginalRedisStore(r redis.UniversalClient) *OriginalRedisStore {
 	return &OriginalRedisStore{
 		Expiration: time.Minute * 5,
 		PreKey:     config.RedisCaptchaPrefix,
@@ -23,7 +23,7 @@ type OriginalRedisStore struct {
 	Expiration time.Duration
 	PreKey     string
 	Context    context.Context
-	Redis      *redis.Client
+	Redis      redis.UniversalClient
 }
 
 // UseWithCtx add context for captcha.

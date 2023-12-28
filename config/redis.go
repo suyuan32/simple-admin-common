@@ -41,7 +41,7 @@ func (r RedisConf) Validate() error {
 	return nil
 }
 
-func (r RedisConf) NewUniversalRedis() (*redis.UniversalClient, error) {
+func (r RedisConf) NewUniversalRedis() (redis.UniversalClient, error) {
 	err := r.Validate()
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func (r RedisConf) NewUniversalRedis() (*redis.UniversalClient, error) {
 		return nil, err
 	}
 
-	return &rds, nil
+	return rds, nil
 }
 
 func (r RedisConf) NewRedis() (*redis.Client, error) {
@@ -148,7 +148,7 @@ func (r RedisConf) MustNewClusterRedis() *redis.ClusterClient {
 	return rds
 }
 
-func (r RedisConf) MustNewUniversalRedis() *redis.UniversalClient {
+func (r RedisConf) MustNewUniversalRedis() redis.UniversalClient {
 	rds, err := r.NewUniversalRedis()
 	logx.Must(err)
 

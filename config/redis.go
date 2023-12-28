@@ -147,3 +147,10 @@ func (r RedisConf) MustNewClusterRedis() *redis.ClusterClient {
 
 	return rds
 }
+
+func (r RedisConf) MustNewUniversalRedis() *redis.UniversalClient {
+	rds, err := r.NewUniversalRedis()
+	logx.Must(err)
+
+	return rds
+}

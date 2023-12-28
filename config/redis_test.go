@@ -18,7 +18,7 @@ func TestRedis(t *testing.T) {
 		Tls:      false,
 	}
 
-	rds := conf.MustNewRedis()
+	rds := conf.MustNewUniversalRedis()
 
 	rds.Set(context.Background(), "testKeyDb0", "testVal", 2*time.Minute)
 
@@ -30,7 +30,19 @@ func TestRedis(t *testing.T) {
 		Tls:      false,
 	}
 
-	rds1 := conf1.MustNewRedis()
+	rds1 := conf1.MustNewUniversalRedis()
 
 	rds1.Set(context.Background(), "testKeyDb1", "testVal", 2*time.Minute)
+
+	conf2 := &RedisConf{
+		Host:     "localhost:6379,localhost:6380",
+		Db:       1,
+		Username: "",
+		Pass:     "",
+		Tls:      false,
+	}
+
+	rds2 := conf2.MustNewUniversalRedis()
+
+	rds2.Set(context.Background(), "testCluster", "testCluster", 2*time.Minute)
 }

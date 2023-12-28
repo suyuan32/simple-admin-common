@@ -31,6 +31,7 @@ type RedisConf struct {
 	Username string `json:",optional"`
 	Pass     string `json:",optional"`
 	Tls      bool   `json:",optional"`
+	Master   string `json:",optional"`
 }
 
 func (r RedisConf) Validate() error {
@@ -38,6 +39,40 @@ func (r RedisConf) Validate() error {
 		return errors.New("host cannot be empty")
 	}
 	return nil
+}
+
+func (r RedisConf) NewUniversalRedis() (*redis.UniversalClient, error) {
+	err := r.Validate()
+	if err != nil {
+		return nil, err
+	}
+
+	opt := &redis.UniversalOptions{
+		Addrs:    strings.Split(r.Host, ","),
+		DB:       r.Db,
+		Password: r.Pass,
+		Username: r.Username,
+	}
+
+	if r.Master != "" {
+		opt.MasterName = r.Master
+	}
+
+	if r.Tls {
+		opt.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	}
+
+	rds := redis.NewUniversalClient(opt)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err = rds.Ping(ctx).Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return &rds, nil
 }
 
 func (r RedisConf) NewRedis() (*redis.Client, error) {

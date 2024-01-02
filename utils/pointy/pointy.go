@@ -44,7 +44,7 @@ func GetStatusPointer(value *uint32) (result *uint8) {
 	return result
 }
 
-// GetTimePointer returns the time pointer from int64
+// GetTimePointer returns the time pointer from unix time int64
 func GetTimePointer(value *int64, nsec int64) (result *time.Time) {
 	if value == nil {
 		return nil
@@ -53,6 +53,19 @@ func GetTimePointer(value *int64, nsec int64) (result *time.Time) {
 	result = new(time.Time)
 
 	*result = time.Unix(*value, nsec)
+
+	return result
+}
+
+// GetTimeMilliPointer returns the time pointer from unix milli time int64
+func GetTimeMilliPointer(value *int64) (result *time.Time) {
+	if value == nil {
+		return nil
+	}
+
+	result = new(time.Time)
+
+	*result = time.UnixMilli(*value)
 
 	return result
 }

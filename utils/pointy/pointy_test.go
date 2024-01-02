@@ -44,3 +44,19 @@ func TestGetUnixMilliPointer(t *testing.T) {
 		t.Error("TestGetUnixMilliPointer: convert failed")
 	}
 }
+
+func TestGetTimePointer(t *testing.T) {
+	nowTime := time.Now().Unix()
+
+	timestampNow := GetTimePointer(&nowTime, 0)
+
+	assert.Equal(t, nowTime, timestampNow.Unix())
+}
+
+func TestGetTimeMilliPointer(t *testing.T) {
+	nowTime := time.Now().UnixMilli()
+
+	timestampNow := GetTimeMilliPointer(&nowTime)
+
+	assert.Equal(t, nowTime, timestampNow.UnixMilli())
+}

@@ -25,7 +25,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/zeromicro/go-zero v1.6.1
 	go.mongodb.org/mongo-driver v1.13.1
-	golang.org/x/crypto v0.16.0
+	golang.org/x/crypto v0.17.0
 	golang.org/x/text v0.14.0
 	google.golang.org/grpc v1.60.1
 	gopkg.in/yaml.v2 v2.4.0

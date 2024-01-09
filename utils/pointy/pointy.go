@@ -75,7 +75,7 @@ func GetTimeMilliPointer(value *int64) (result *time.Time) {
 // Example:
 //
 //	 var zeroTime time.Time
-//		zeroTimeP := GetUnixMilliPointer(zeroTime)
+//		zeroTimeP := GetUnixMilliPointer(zeroTime.UnixMilli())
 //		fmt.Println(zeroTimeP)
 //
 // Result:  <nil>

@@ -15,10 +15,12 @@
 package config
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"github.com/pkg/errors"
 	"os"
+	"time"
 
 	entsql "entgo.io/ent/dialect/sql"
 	_ "github.com/go-sql-driver/mysql"
@@ -49,7 +51,8 @@ func (c DatabaseConf) NewNoCacheDriver() *entsql.Driver {
 	db, err := sql.Open(c.Type, c.GetDSN())
 	logx.Must(err)
 
-	err = db.Ping()
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	err = db.PingContext(ctx)
 	logx.Must(err)
 
 	db.SetMaxOpenConns(c.MaxOpenConn)

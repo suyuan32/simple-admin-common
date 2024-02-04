@@ -49,6 +49,9 @@ func (c DatabaseConf) NewNoCacheDriver() *entsql.Driver {
 	db, err := sql.Open(c.Type, c.GetDSN())
 	logx.Must(err)
 
+	err = db.Ping()
+	logx.Must(err)
+
 	db.SetMaxOpenConns(c.MaxOpenConn)
 	driver := entsql.OpenDB(c.Type, db)
 

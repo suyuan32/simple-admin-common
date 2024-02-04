@@ -15,6 +15,7 @@
 package config
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"github.com/pkg/errors"
@@ -49,7 +50,8 @@ func (c DatabaseConf) NewNoCacheDriver() *entsql.Driver {
 	db, err := sql.Open(c.Type, c.GetDSN())
 	logx.Must(err)
 
-	err = db.Ping()
+	ctx, _ := context.WithTimeout(context.Background(), 5)
+	err = db.PingContext(ctx)
 	logx.Must(err)
 
 	db.SetMaxOpenConns(c.MaxOpenConn)

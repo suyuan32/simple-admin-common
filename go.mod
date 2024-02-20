@@ -2,7 +2,7 @@ module github.com/suyuan32/simple-admin-common
 
 go 1.21.0
 
-replace github.com/zeromicro/go-zero v1.6.2 => github.com/suyuan32/simple-admin-tools v1.6.5
+replace github.com/zeromicro/go-zero v1.6.2 => github.com/suyuan32/simple-admin-tools v1.6.6
 
 require (
 	entgo.io/ent v0.13.0
@@ -56,7 +56,7 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.18.0 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.19.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect
@@ -110,27 +110,27 @@ require (
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
 	github.com/zclconf/go-cty v1.8.0 // indirect
-	go.opentelemetry.io/otel v1.22.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.22.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.22.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.22.0 // indirect
-	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.22.0 // indirect
-	go.opentelemetry.io/otel/exporters/zipkin v1.22.0 // indirect
-	go.opentelemetry.io/otel/metric v1.22.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.22.0 // indirect
-	go.opentelemetry.io/otel/trace v1.22.0 // indirect
-	go.opentelemetry.io/proto/otlp v1.0.0 // indirect
+	go.opentelemetry.io/otel v1.23.1 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.23.1 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.23.1 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.23.1 // indirect
+	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.23.1 // indirect
+	go.opentelemetry.io/otel/exporters/zipkin v1.23.1 // indirect
+	go.opentelemetry.io/otel/metric v1.23.1 // indirect
+	go.opentelemetry.io/otel/sdk v1.23.1 // indirect
+	go.opentelemetry.io/otel/trace v1.23.1 // indirect
+	go.opentelemetry.io/proto/otlp v1.1.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/automaxprocs v1.5.3 // indirect
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63 // indirect
 	golang.org/x/image v0.13.0 // indirect
 	golang.org/x/mod v0.14.0 // indirect
-	golang.org/x/net v0.20.0 // indirect
+	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240102182953-50ed04b92917 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20231212172506-995d672761c0 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240213162025-012b6fc9bca9 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240205150955-31a09d347014 // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

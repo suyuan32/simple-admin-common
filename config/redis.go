@@ -48,10 +48,11 @@ func (r RedisConf) NewUniversalRedis() (redis.UniversalClient, error) {
 	}
 
 	opt := &redis.UniversalOptions{
-		Addrs:    strings.Split(r.Host, ","),
-		DB:       r.Db,
-		Password: r.Pass,
-		Username: r.Username,
+		Addrs:            strings.Split(r.Host, ","),
+		DB:               r.Db,
+		Password:         r.Pass,
+		Username:         r.Username,
+		DisableIndentity: true, // disable identity check temporarily because v9.5.0 must check identity
 	}
 
 	if r.Master != "" {

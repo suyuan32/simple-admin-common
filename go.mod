@@ -12,7 +12,7 @@ require (
 	github.com/casbin/casbin/v2 v2.82.0
 	github.com/casbin/ent-adapter v0.3.0
 	github.com/casbin/redis-watcher/v2 v2.5.0
-	github.com/go-sql-driver/mysql v1.7.1
+	github.com/go-sql-driver/mysql v1.8.0
 	github.com/gofrs/uuid/v5 v5.0.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/hashicorp/consul/api v1.28.2
@@ -38,6 +38,7 @@ require (
 
 require (
 	ariga.io/atlas v0.19.1-0.20240203083654-5948b60a8e43 // indirect
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect

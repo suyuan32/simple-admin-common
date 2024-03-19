@@ -2,7 +2,7 @@ module github.com/suyuan32/simple-admin-common
 
 go 1.22.0
 
-replace github.com/zeromicro/go-zero v1.6.3 => github.com/suyuan32/simple-admin-tools v1.6.8
+replace github.com/zeromicro/go-zero v1.6.3 => github.com/suyuan32/simple-admin-tools v1.6.9
 
 replace github.com/mojocn/base64Captcha v1.3.6 => github.com/suyuan32/base64Captcha v1.3.7
 
@@ -131,8 +131,8 @@ require (
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.19.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240228224816-df926f6c8641 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240311173647-c811ad7063a7 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240318140521-94a12d6c2237 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240314234333-6e1732d8331c // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

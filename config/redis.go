@@ -26,12 +26,12 @@ import (
 
 // A RedisConf is a redis config.
 type RedisConf struct {
-	Host     string
-	Db       int    `json:",default=0"`
-	Username string `json:",optional"`
-	Pass     string `json:",optional"`
-	Tls      bool   `json:",optional"`
-	Master   string `json:",optional"`
+	Host     string `json:",env=REDIS_HOST"`
+	Db       int    `json:",default=0,env=REDIS_DB"`
+	Username string `json:",optional,env=REDIS_USERNAME"`
+	Pass     string `json:",optional,env=REDIS_PASSWORD"`
+	Tls      bool   `json:",optional,env=REDIS_TLS"`
+	Master   string `json:",optional,env=REDIS_MASTER"`
 }
 
 func (r RedisConf) Validate() error {

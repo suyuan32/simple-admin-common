@@ -12,7 +12,7 @@ require (
 	github.com/casbin/casbin/v2 v2.85.0
 	github.com/casbin/ent-adapter v0.3.0
 	github.com/casbin/redis-watcher/v2 v2.5.0
-	github.com/go-sql-driver/mysql v1.8.0
+	github.com/go-sql-driver/mysql v1.8.1
 	github.com/gofrs/uuid/v5 v5.0.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/hashicorp/consul/api v1.28.2

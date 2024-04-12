@@ -22,3 +22,6 @@ const RedisTokenPrefix = "BLACKLIST:TOKEN:"
 
 // RedisCasbinChannel is the channel of captcha key in redis
 const RedisCasbinChannel = "/casbin"
+
+// RedisApiPermissionCountPrefix is the prefix of api permission access times left in redis
+const RedisApiPermissionCountPrefix = "API:PERMISSION:"

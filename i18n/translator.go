@@ -113,7 +113,7 @@ func (l *Translator) TransError(ctx context.Context, err error) error {
 		}
 		return errorx.NewApiError(apiErr.Code, message)
 	} else {
-		return errorx.NewApiError(http.StatusInternalServerError, "failed to translate error message")
+		return errorx.NewApiError(http.StatusInternalServerError, err.Error())
 	}
 }
 

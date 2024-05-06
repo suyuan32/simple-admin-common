@@ -24,7 +24,7 @@ require (
 	github.com/zeromicro/go-zero v1.6.4
 	go.mongodb.org/mongo-driver v1.15.0
 	golang.org/x/crypto v0.22.0
-	golang.org/x/text v0.14.0
+	golang.org/x/text v0.15.0
 	google.golang.org/grpc v1.63.2
 	gorm.io/driver/mysql v1.5.6
 	gorm.io/driver/postgres v1.5.7

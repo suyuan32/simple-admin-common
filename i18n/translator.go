@@ -101,7 +101,9 @@ func (l *Translator) AddLanguageSupport(lang language.Tag) {
 	l.localizer[lang] = i18n.NewLocalizer(l.bundle, lang.String())
 }
 
-// AddLanguagesByConf adds multiple languages from file system by i18n config.
+// AddLanguagesByConf adds multiple languages from file system by i18n Conf.
+// If Conf.Dir is empty, it will load paths in embedded FS.
+// If Conf.Dir is not empty, it will load paths joined with Dir path.
 func (l *Translator) AddLanguagesByConf(conf Conf, fs embed.FS) error {
 	if len(conf.SupportLanguages) > 0 {
 		if len(conf.SupportLanguages) != len(conf.BundleFilePaths) {
@@ -109,17 +111,17 @@ func (l *Translator) AddLanguagesByConf(conf Conf, fs embed.FS) error {
 		} else {
 			for i, v := range conf.SupportLanguages {
 				l.AddLanguageSupport(parse.ParseTags(v)[0])
-				if strings.HasPrefix(v, "locale") {
+				if conf.Dir == "" {
 					err := l.AddBundleFromEmbeddedFS(fs, conf.BundleFilePaths[i])
 					if err != nil {
 						logx.Must(fmt.Errorf("failed to load files from %s for i18n, please check the "+
 							"configuration, error: %s", conf.BundleFilePaths[i], err.Error()))
 					}
 				} else {
-					err := l.AddBundleFromFile(conf.BundleFilePaths[i])
+					err := l.AddBundleFromFile(filepath.Join(conf.Dir, conf.BundleFilePaths[i]))
 					if err != nil {
 						logx.Must(fmt.Errorf("failed to load files from %s for i18n, please check the "+
-							"configuration, error: %s", conf.BundleFilePaths[i], err.Error()))
+							"configuration, error: %s", filepath.Join(conf.Dir, conf.BundleFilePaths[i]), err.Error()))
 					}
 				}
 			}

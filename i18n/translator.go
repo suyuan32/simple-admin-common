@@ -126,8 +126,6 @@ func (l *Translator) AddLanguagesByConf(conf Conf, fs embed.FS) {
 				}
 			}
 		}
-	} else {
-		logx.Must(errors.New("the i18n config of SupportLanguages is empty, please check the configuration"))
 	}
 }
 

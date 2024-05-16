@@ -104,7 +104,7 @@ func (l *Translator) AddLanguageSupport(lang language.Tag) {
 // AddLanguagesByConf adds multiple languages from file system by i18n Conf.
 // If Conf.Dir is empty, it will load paths in embedded FS.
 // If Conf.Dir is not empty, it will load paths joined with Dir path.
-func (l *Translator) AddLanguagesByConf(conf Conf, fs embed.FS) error {
+func (l *Translator) AddLanguagesByConf(conf Conf, fs embed.FS) {
 	if len(conf.SupportLanguages) > 0 {
 		if len(conf.SupportLanguages) != len(conf.BundleFilePaths) {
 			logx.Must(errors.New("the i18n config of SupportLanguages is not the same as BundleFilePaths, please check the configuration"))
@@ -129,7 +129,6 @@ func (l *Translator) AddLanguagesByConf(conf Conf, fs embed.FS) error {
 	} else {
 		logx.Must(errors.New("the i18n config of SupportLanguages is empty, please check the configuration"))
 	}
-	return nil
 }
 
 // Trans used to translate any i18n string.

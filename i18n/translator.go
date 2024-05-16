@@ -18,6 +18,8 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -97,6 +99,35 @@ func (l *Translator) NewTranslator() {
 func (l *Translator) AddLanguageSupport(lang language.Tag) {
 	l.supportLangs = append(l.supportLangs, lang)
 	l.localizer[lang] = i18n.NewLocalizer(l.bundle, lang.String())
+}
+
+// AddLanguagesByConf adds multiple languages from file system by i18n config.
+func (l *Translator) AddLanguagesByConf(conf Conf, fs embed.FS) error {
+	if len(conf.SupportLanguages) > 0 {
+		if len(conf.SupportLanguages) != len(conf.BundleFilePaths) {
+			logx.Must(errors.New("the i18n config of SupportLanguages is not the same as BundleFilePaths, please check the configuration"))
+		} else {
+			for i, v := range conf.SupportLanguages {
+				l.AddLanguageSupport(parse.ParseTags(v)[0])
+				if strings.HasPrefix(v, "locale") {
+					err := l.AddBundleFromEmbeddedFS(fs, conf.BundleFilePaths[i])
+					if err != nil {
+						logx.Must(fmt.Errorf("failed to load files from %s for i18n, please check the "+
+							"configuration, error: %s", conf.BundleFilePaths[i], err.Error()))
+					}
+				} else {
+					err := l.AddBundleFromFile(conf.BundleFilePaths[i])
+					if err != nil {
+						logx.Must(fmt.Errorf("failed to load files from %s for i18n, please check the "+
+							"configuration, error: %s", conf.BundleFilePaths[i], err.Error()))
+					}
+				}
+			}
+		}
+	} else {
+		logx.Must(errors.New("the i18n config of SupportLanguages is empty, please check the configuration"))
+	}
+	return nil
 }
 
 // Trans used to translate any i18n string.

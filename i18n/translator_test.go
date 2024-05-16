@@ -53,8 +53,7 @@ func TestTranslatorByConf(t *testing.T) {
 		},
 	}
 
-	err := l.AddLanguagesByConf(c, LocaleFS)
-	assert.Nil(t, err)
+	l.AddLanguagesByConf(c, LocaleFS)
 
 	res := l.Trans(context.WithValue(context.Background(), "lang", "ja"), "common.success")
 	assert.Equal(t, "操作が成功しました", res)

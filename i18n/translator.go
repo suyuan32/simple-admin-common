@@ -54,6 +54,14 @@ func (l *Translator) NewBundle(file embed.FS) {
 	l.bundle = bundle
 }
 
+// AddBundleFromEmbeddedFS adds new bundle into translator from embedded file system
+func (l *Translator) AddBundleFromEmbeddedFS(file embed.FS, path string) error {
+	if _, err := l.bundle.LoadMessageFileFS(file, path); err != nil {
+		return err
+	}
+	return nil
+}
+
 // NewBundleFromFile returns a bundle from a directory which contains i18n files.
 func (l *Translator) NewBundleFromFile(conf Conf) {
 	bundle := i18n.NewBundle(language.Chinese)
@@ -68,6 +76,14 @@ func (l *Translator) NewBundleFromFile(conf Conf) {
 	l.bundle = bundle
 }
 
+// AddBundleFromFile adds new bundle into translator from file path.
+func (l *Translator) AddBundleFromFile(path string) error {
+	if _, err := l.bundle.LoadMessageFile(path); err != nil {
+		return err
+	}
+	return nil
+}
+
 // NewTranslator sets localize for translator.
 func (l *Translator) NewTranslator() {
 	l.supportLangs = append(l.supportLangs, language.Chinese)
@@ -75,6 +91,12 @@ func (l *Translator) NewTranslator() {
 	l.localizer = make(map[language.Tag]*i18n.Localizer)
 	l.localizer[language.Chinese] = i18n.NewLocalizer(l.bundle, language.Chinese.String())
 	l.localizer[language.English] = i18n.NewLocalizer(l.bundle, language.English.String())
+}
+
+// AddLanguageSupport adds supports for new language
+func (l *Translator) AddLanguageSupport(lang language.Tag) {
+	l.supportLangs = append(l.supportLangs, lang)
+	l.localizer[lang] = i18n.NewLocalizer(l.bundle, lang.String())
 }
 
 // Trans used to translate any i18n string.

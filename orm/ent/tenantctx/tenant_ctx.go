@@ -10,7 +10,7 @@ import (
 
 // GetTenantIDFromCtx returns tenant id from context.
 // If error occurs, return 0.
-func GetTenantIDFromCtx(ctx context.Context) int {
+func GetTenantIDFromCtx(ctx context.Context) uint64 {
 	var tenantId string
 	var ok bool
 
@@ -32,5 +32,5 @@ func GetTenantIDFromCtx(ctx context.Context) int {
 		logx.Error("failed to convert tenant id", logx.Field("detail", err))
 		return 0
 	}
-	return id
+	return uint64(id)
 }

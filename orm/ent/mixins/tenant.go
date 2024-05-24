@@ -2,6 +2,7 @@ package mixins
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/mixin"
 )
@@ -15,6 +16,8 @@ type TenantMixin struct {
 func (TenantMixin) Fields() []ent.Field {
 	return []ent.Field{
 		field.Uint64("tenant_id").
-			Immutable(),
+			Default(0).
+			Immutable().Comment("Tenant ID | 租户 ID").
+			Annotations(entsql.WithComments(true)),
 	}
 }

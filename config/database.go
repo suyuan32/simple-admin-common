@@ -17,8 +17,8 @@ package config
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
-	"github.com/pkg/errors"
 	"os"
 	"time"
 

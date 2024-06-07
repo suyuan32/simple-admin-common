@@ -17,7 +17,7 @@ package config
 import (
 	"context"
 	"crypto/tls"
-	"github.com/pkg/errors"
+	"errors"
 	"github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/logx"
 	"strings"

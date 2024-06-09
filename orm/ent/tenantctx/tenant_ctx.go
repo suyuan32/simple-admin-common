@@ -9,6 +9,8 @@ import (
 	"strconv"
 )
 
+const TENANT_ADMIN = "tenant-admin"
+
 // GetTenantIDFromCtx returns tenant id from context.
 // If error occurs, return 0.
 func GetTenantIDFromCtx(ctx context.Context) uint64 {
@@ -34,4 +36,24 @@ func GetTenantIDFromCtx(ctx context.Context) uint64 {
 		return entenum.TENANT_DEFAULT_ID
 	}
 	return uint64(id)
+}
+
+// GetTenantAdminCtx returns true when context including admin authority info.
+// If it returns true, the operation can be executed without tenant privacy layer.
+func GetTenantAdminCtx(ctx context.Context) bool {
+	var policy string
+	var ok bool
+
+	if policy, ok = ctx.Value(TENANT_ADMIN).(string); ok {
+		if policy == "allow" {
+			return true
+		}
+	}
+
+	return false
+}
+
+// AdminCtx returns a context with admin authority info.
+func AdminCtx(ctx context.Context) context.Context {
+	return context.WithValue(ctx, TENANT_ADMIN, "allow")
 }

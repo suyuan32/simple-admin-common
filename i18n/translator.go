@@ -132,12 +132,14 @@ func NewTranslator(conf Conf, efs embed.FS) *Translator {
 	var files []string
 	if conf.Dir == "" {
 		if err := fs.WalkDir(efs, ".", func(path string, d fs.DirEntry, err error) error {
-			if d.IsDir() {
-				return err
+			if d == nil {
+				logx.Must(fmt.Errorf("wrong directory path: %s", conf.Dir))
+			}
+			if !d.IsDir() {
+				files = append(files, path)
 			}
 
-			files = append(files, path)
-			return nil
+			return err
 		}); err != nil {
 			logx.Must(fmt.Errorf("failed to get any files in dir: %s, error: %v", conf.Dir, err))
 		}
@@ -153,12 +155,14 @@ func NewTranslator(conf Conf, efs embed.FS) *Translator {
 		}
 	} else {
 		if err := filepath.WalkDir(conf.Dir, func(path string, d fs.DirEntry, err error) error {
-			if d.IsDir() {
-				return err
+			if d == nil {
+				logx.Must(fmt.Errorf("wrong directory path: %s", conf.Dir))
+			}
+			if !d.IsDir() {
+				files = append(files, path)
 			}
 
-			files = append(files, path)
-			return nil
+			return err
 		}); err != nil {
 			logx.Must(fmt.Errorf("failed to get any files in dir: %s, error: %v", conf.Dir, err))
 		}

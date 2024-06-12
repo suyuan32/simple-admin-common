@@ -45,12 +45,6 @@ func TestTranslatorByConf(t *testing.T) {
 
 	c := Conf{
 		Dir: "",
-		BundleFilePaths: []string{
-			"locale/ja.json",
-		},
-		SupportLanguages: []string{
-			"ja",
-		},
 	}
 
 	l.AddLanguagesByConf(c, LocaleFS)

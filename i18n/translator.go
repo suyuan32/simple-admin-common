@@ -18,8 +18,8 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -104,26 +104,48 @@ func (l *Translator) AddLanguageSupport(lang language.Tag) {
 // AddLanguagesByConf adds multiple languages from file system by i18n Conf.
 // If Conf.Dir is empty, it will load paths in embedded FS.
 // If Conf.Dir is not empty, it will load paths joined with Dir path.
-func (l *Translator) AddLanguagesByConf(conf Conf, fs embed.FS) {
-	if len(conf.SupportLanguages) > 0 {
-		if len(conf.SupportLanguages) != len(conf.BundleFilePaths) {
-			logx.Must(errors.New("the i18n config of SupportLanguages is not the same as BundleFilePaths, please check the configuration"))
-		} else {
-			for i, v := range conf.SupportLanguages {
-				l.AddLanguageSupport(parse.ParseTags(v)[0])
-				if conf.Dir == "" {
-					err := l.AddBundleFromEmbeddedFS(fs, conf.BundleFilePaths[i])
-					if err != nil {
-						logx.Must(fmt.Errorf("failed to load files from %s for i18n, please check the "+
-							"configuration, error: %s", conf.BundleFilePaths[i], err.Error()))
-					}
-				} else {
-					err := l.AddBundleFromFile(filepath.Join(conf.Dir, conf.BundleFilePaths[i]))
-					if err != nil {
-						logx.Must(fmt.Errorf("failed to load files from %s for i18n, please check the "+
-							"configuration, error: %s", filepath.Join(conf.Dir, conf.BundleFilePaths[i]), err.Error()))
-					}
-				}
+func (l *Translator) AddLanguagesByConf(conf Conf, efs embed.FS) {
+	var files []string
+	if conf.Dir == "" {
+		if err := fs.WalkDir(efs, ".", func(path string, d fs.DirEntry, err error) error {
+			if d.IsDir() {
+				return err
+			}
+
+			files = append(files, path)
+			return nil
+		}); err != nil {
+			logx.Must(fmt.Errorf("failed to get any files in dir: %s, error: %v", conf.Dir, err))
+		}
+
+		for _, v := range files {
+			languageName := strings.TrimSuffix(filepath.Base(v), ".json")
+			l.AddLanguageSupport(parse.ParseTags(languageName)[0])
+			err := l.AddBundleFromEmbeddedFS(efs, v)
+			if err != nil {
+				logx.Must(fmt.Errorf("failed to load files from %s for i18n, please check the "+
+					"configuration, error: %s", v, err.Error()))
+			}
+		}
+	} else {
+		if err := filepath.WalkDir(conf.Dir, func(path string, d fs.DirEntry, err error) error {
+			if d.IsDir() {
+				return err
+			}
+
+			files = append(files, path)
+			return nil
+		}); err != nil {
+			logx.Must(fmt.Errorf("failed to get any files in dir: %s, error: %v", conf.Dir, err))
+		}
+
+		for _, v := range files {
+			languageName := strings.TrimSuffix(filepath.Base(v), ".json")
+			l.AddLanguageSupport(parse.ParseTags(languageName)[0])
+			err := l.AddBundleFromFile(v)
+			if err != nil {
+				logx.Must(fmt.Errorf("failed to load files from %s for i18n, please check the "+
+					"configuration, error: %s", filepath.Join(conf.Dir, v), err.Error()))
 			}
 		}
 	}

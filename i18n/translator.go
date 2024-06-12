@@ -121,7 +121,7 @@ func (l *Translator) MatchLocalizer(lang string) *i18n.Localizer {
 // NewTranslator returns a translator by I18n Conf.
 // If Conf.Dir is empty, it will load paths in embedded FS.
 // If Conf.Dir is not empty, it will load paths joined with Dir path.
-// e.g. trans = i18n.NewTranslator(c, i18n2.LocaleFS)
+// e.g. trans = i18n.NewTranslator(c.I18nConf, i18n2.LocaleFS)
 func NewTranslator(conf Conf, efs embed.FS) *Translator {
 	trans := &Translator{}
 	trans.localizer = make(map[language.Tag]*i18n.Localizer)

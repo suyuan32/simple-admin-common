@@ -7,7 +7,7 @@ replace github.com/zeromicro/go-zero v1.6.5 => github.com/suyuan32/simple-admin-
 require (
 	entgo.io/ent v0.13.1
 	github.com/apache/rocketmq-client-go/v2 v2.1.2
-	github.com/casbin/casbin/v2 v2.93.0
+	github.com/casbin/casbin/v2 v2.96.0
 	github.com/casbin/ent-adapter v0.3.0
 	github.com/casbin/redis-watcher/v2 v2.5.0
 	github.com/go-sql-driver/mysql v1.8.1
@@ -25,8 +25,8 @@ require (
 	golang.org/x/crypto v0.24.0
 	golang.org/x/text v0.16.0
 	google.golang.org/grpc v1.64.0
-	gorm.io/driver/mysql v1.5.6
-	gorm.io/driver/postgres v1.5.7
+	gorm.io/driver/mysql v1.5.7
+	gorm.io/driver/postgres v1.5.9
 	gorm.io/gorm v1.25.10
 )
 

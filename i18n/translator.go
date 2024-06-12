@@ -44,38 +44,12 @@ type Translator struct {
 	supportLangs []language.Tag
 }
 
-// NewBundle returns a bundle from FS.
-func (l *Translator) NewBundle(file embed.FS) {
-	bundle := i18n.NewBundle(language.Chinese)
-	bundle.RegisterUnmarshalFunc("json", json.Unmarshal)
-	_, err := bundle.LoadMessageFileFS(file, "locale/zh.json")
-	logx.Must(err)
-	_, err = bundle.LoadMessageFileFS(file, "locale/en.json")
-	logx.Must(err)
-
-	l.bundle = bundle
-}
-
 // AddBundleFromEmbeddedFS adds new bundle into translator from embedded file system
 func (l *Translator) AddBundleFromEmbeddedFS(file embed.FS, path string) error {
 	if _, err := l.bundle.LoadMessageFileFS(file, path); err != nil {
 		return err
 	}
 	return nil
-}
-
-// NewBundleFromFile returns a bundle from a directory which contains i18n files.
-func (l *Translator) NewBundleFromFile(conf Conf) {
-	bundle := i18n.NewBundle(language.Chinese)
-	filePath, err := filepath.Abs(conf.Dir)
-	logx.Must(err)
-	bundle.RegisterUnmarshalFunc("json", json.Unmarshal)
-	_, err = bundle.LoadMessageFile(filepath.Join(filePath, "locale/zh.json"))
-	logx.Must(err)
-	_, err = bundle.LoadMessageFile(filepath.Join(filePath, "locale/en.json"))
-	logx.Must(err)
-
-	l.bundle = bundle
 }
 
 // AddBundleFromFile adds new bundle into translator from file path.
@@ -86,69 +60,10 @@ func (l *Translator) AddBundleFromFile(path string) error {
 	return nil
 }
 
-// NewTranslator sets localize for translator.
-func (l *Translator) NewTranslator() {
-	l.supportLangs = append(l.supportLangs, language.Chinese)
-	l.supportLangs = append(l.supportLangs, language.English)
-	l.localizer = make(map[language.Tag]*i18n.Localizer)
-	l.localizer[language.Chinese] = i18n.NewLocalizer(l.bundle, language.Chinese.String())
-	l.localizer[language.English] = i18n.NewLocalizer(l.bundle, language.English.String())
-}
-
 // AddLanguageSupport adds supports for new language
 func (l *Translator) AddLanguageSupport(lang language.Tag) {
 	l.supportLangs = append(l.supportLangs, lang)
 	l.localizer[lang] = i18n.NewLocalizer(l.bundle, lang.String())
-}
-
-// AddLanguagesByConf adds multiple languages from file system by i18n Conf.
-// If Conf.Dir is empty, it will load paths in embedded FS.
-// If Conf.Dir is not empty, it will load paths joined with Dir path.
-func (l *Translator) AddLanguagesByConf(conf Conf, efs embed.FS) {
-	var files []string
-	if conf.Dir == "" {
-		if err := fs.WalkDir(efs, ".", func(path string, d fs.DirEntry, err error) error {
-			if d.IsDir() {
-				return err
-			}
-
-			files = append(files, path)
-			return nil
-		}); err != nil {
-			logx.Must(fmt.Errorf("failed to get any files in dir: %s, error: %v", conf.Dir, err))
-		}
-
-		for _, v := range files {
-			languageName := strings.TrimSuffix(filepath.Base(v), ".json")
-			l.AddLanguageSupport(parse.ParseTags(languageName)[0])
-			err := l.AddBundleFromEmbeddedFS(efs, v)
-			if err != nil {
-				logx.Must(fmt.Errorf("failed to load files from %s for i18n, please check the "+
-					"configuration, error: %s", v, err.Error()))
-			}
-		}
-	} else {
-		if err := filepath.WalkDir(conf.Dir, func(path string, d fs.DirEntry, err error) error {
-			if d.IsDir() {
-				return err
-			}
-
-			files = append(files, path)
-			return nil
-		}); err != nil {
-			logx.Must(fmt.Errorf("failed to get any files in dir: %s, error: %v", conf.Dir, err))
-		}
-
-		for _, v := range files {
-			languageName := strings.TrimSuffix(filepath.Base(v), ".json")
-			l.AddLanguageSupport(parse.ParseTags(languageName)[0])
-			err := l.AddBundleFromFile(v)
-			if err != nil {
-				logx.Must(fmt.Errorf("failed to load files from %s for i18n, please check the "+
-					"configuration, error: %s", filepath.Join(conf.Dir, v), err.Error()))
-			}
-		}
-	}
 }
 
 // Trans used to translate any i18n string.
@@ -203,18 +118,61 @@ func (l *Translator) MatchLocalizer(lang string) *i18n.Localizer {
 	return l.localizer[language.Chinese]
 }
 
-// NewTranslator returns a translator by FS.
-func NewTranslator(file embed.FS) *Translator {
+// NewTranslator returns a translator by I18n Conf.
+// If Conf.Dir is empty, it will load paths in embedded FS.
+// If Conf.Dir is not empty, it will load paths joined with Dir path.
+// e.g. trans = i18n.NewTranslator(c, i18n2.LocaleFS)
+func NewTranslator(conf Conf, efs embed.FS) *Translator {
 	trans := &Translator{}
-	trans.NewBundle(file)
-	trans.NewTranslator()
-	return trans
-}
+	trans.localizer = make(map[language.Tag]*i18n.Localizer)
+	bundle := i18n.NewBundle(language.Chinese)
+	bundle.RegisterUnmarshalFunc("json", json.Unmarshal)
+	trans.bundle = bundle
 
-// NewTranslatorFromFile returns a translator by FS.
-func NewTranslatorFromFile(conf Conf) *Translator {
-	trans := &Translator{}
-	trans.NewBundleFromFile(conf)
-	trans.NewTranslator()
+	var files []string
+	if conf.Dir == "" {
+		if err := fs.WalkDir(efs, ".", func(path string, d fs.DirEntry, err error) error {
+			if d.IsDir() {
+				return err
+			}
+
+			files = append(files, path)
+			return nil
+		}); err != nil {
+			logx.Must(fmt.Errorf("failed to get any files in dir: %s, error: %v", conf.Dir, err))
+		}
+
+		for _, v := range files {
+			languageName := strings.TrimSuffix(filepath.Base(v), ".json")
+			trans.AddLanguageSupport(parse.ParseTags(languageName)[0])
+			err := trans.AddBundleFromEmbeddedFS(efs, v)
+			if err != nil {
+				logx.Must(fmt.Errorf("failed to load files from %s for i18n, please check the "+
+					"configuration, error: %s", v, err.Error()))
+			}
+		}
+	} else {
+		if err := filepath.WalkDir(conf.Dir, func(path string, d fs.DirEntry, err error) error {
+			if d.IsDir() {
+				return err
+			}
+
+			files = append(files, path)
+			return nil
+		}); err != nil {
+			logx.Must(fmt.Errorf("failed to get any files in dir: %s, error: %v", conf.Dir, err))
+		}
+
+		for _, v := range files {
+			languageName := strings.TrimSuffix(filepath.Base(v), ".json")
+			trans.AddLanguageSupport(parse.ParseTags(languageName)[0])
+			err := trans.AddBundleFromFile(v)
+			if err != nil {
+				logx.Must(fmt.Errorf("failed to load files from %s for i18n, please check the "+
+					"configuration, error: %s", filepath.Join(conf.Dir, v), err.Error()))
+			}
+		}
+	}
+
 	return trans
 }

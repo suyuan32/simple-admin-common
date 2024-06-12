@@ -16,39 +16,24 @@ package i18n
 
 import (
 	"context"
-	"golang.org/x/text/language"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestTranslator(t *testing.T) {
-	l := &Translator{}
-	l.NewBundle(LocaleFS)
-	l.NewTranslator()
-	res := l.Trans(context.WithValue(context.Background(), "lang", "zh"), "common.success")
-	assert.Equal(t, "成功", res)
-
-	err := l.AddBundleFromEmbeddedFS(LocaleFS, "locale/ja.json")
-	assert.Nil(t, err)
-
-	l.AddLanguageSupport(language.Japanese)
-
-	res = l.Trans(context.WithValue(context.Background(), "lang", "ja"), "common.success")
-	assert.Equal(t, "操作が成功しました", res)
-}
-
-func TestTranslatorByConf(t *testing.T) {
-	l := &Translator{}
-	l.NewBundle(LocaleFS)
-	l.NewTranslator()
-
 	c := Conf{
 		Dir: "",
 	}
 
-	l.AddLanguagesByConf(c, LocaleFS)
+	trans := NewTranslator(c, LocaleFS)
 
-	res := l.Trans(context.WithValue(context.Background(), "lang", "ja"), "common.success")
+	res := trans.Trans(context.WithValue(context.Background(), "lang", "zh"), "common.success")
+	assert.Equal(t, "成功", res)
+
+	res = trans.Trans(context.WithValue(context.Background(), "lang", "ja"), "common.success")
 	assert.Equal(t, "操作が成功しました", res)
+
+	res = trans.Trans(context.WithValue(context.Background(), "lang", "en"), "common.success")
+	assert.Equal(t, "Successfully", res)
 }

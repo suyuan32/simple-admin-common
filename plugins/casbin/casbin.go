@@ -15,6 +15,7 @@
 package casbin
 
 import (
+	"fmt"
 	"github.com/suyuan32/simple-admin-common/config"
 	"log"
 
@@ -125,7 +126,7 @@ func (l CasbinConf) MustNewOriginalRedisWatcher(c config.RedisConf, f func(strin
 			Username: c.Username,
 			Password: c.Pass,
 		},
-		Channel:    "/casbin",
+		Channel:    fmt.Sprintf("%s-%d", config.RedisCasbinChannel, c.Db),
 		IgnoreSelf: false,
 	})
 	logx.Must(err)

@@ -21,7 +21,7 @@ require (
 	github.com/redis/go-redis/v9 v9.5.3
 	github.com/stretchr/testify v1.9.0
 	github.com/zeromicro/go-zero v1.6.5
-	go.mongodb.org/mongo-driver v1.15.0
+	go.mongodb.org/mongo-driver v1.15.1
 	golang.org/x/crypto v0.24.0
 	golang.org/x/text v0.16.0
 	google.golang.org/grpc v1.64.0

@@ -12,7 +12,7 @@ import (
 const TENANT_ADMIN = "tenant-admin"
 
 // GetTenantIDFromCtx returns tenant id from context.
-// If error occurs, return 0.
+// If error occurs, return default tenant ID.
 func GetTenantIDFromCtx(ctx context.Context) uint64 {
 	var tenantId string
 	var ok bool

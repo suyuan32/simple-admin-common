@@ -20,6 +20,9 @@ const RedisCaptchaPrefix = "CAPTCHA:"
 // RedisTokenPrefix is the prefix of blacklist token key in redis
 const RedisTokenPrefix = "BLACKLIST:TOKEN:"
 
+// RedisTenantBlacklistPrefix is the prefix of tenant blacklist key in redis
+const RedisTenantBlacklistPrefix = "BLACKLIST:TENANT:"
+
 // RedisCasbinChannel is the channel of captcha key in redis
 const RedisCasbinChannel = "/casbin"
 

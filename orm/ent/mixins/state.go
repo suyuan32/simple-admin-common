@@ -16,7 +16,6 @@ package mixins
 
 import (
 	"entgo.io/ent"
-	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/mixin"
 )
@@ -32,7 +31,6 @@ func (StateMixin) Fields() []ent.Field {
 		field.Bool("state").
 			Default(true).
 			Optional().
-			Comment("State true: normal false: ban | 状态 true 正常 false 禁用").
-			Annotations(entsql.WithComments(true)),
+			Comment("State true: normal false: ban | 状态 true 正常 false 禁用"),
 	}
 }

@@ -15,7 +15,6 @@
 package mixins
 
 import (
-	"entgo.io/ent/dialect/entsql"
 	"time"
 
 	"entgo.io/ent"
@@ -35,12 +34,10 @@ func (IDMixin) Fields() []ent.Field {
 		field.Time("created_at").
 			Immutable().
 			Default(time.Now).
-			Comment("Create Time | 创建日期").
-			Annotations(entsql.WithComments(true)),
+			Comment("Create Time | 创建日期"),
 		field.Time("updated_at").
 			Default(time.Now).
 			UpdateDefault(time.Now).
-			Comment("Update Time | 修改日期").
-			Annotations(entsql.WithComments(true)),
+			Comment("Update Time | 修改日期"),
 	}
 }

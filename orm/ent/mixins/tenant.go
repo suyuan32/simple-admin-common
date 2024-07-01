@@ -2,7 +2,6 @@ package mixins
 
 import (
 	"entgo.io/ent"
-	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/mixin"
 	"github.com/suyuan32/simple-admin-common/orm/ent/entenum"
@@ -18,7 +17,6 @@ func (TenantMixin) Fields() []ent.Field {
 	return []ent.Field{
 		field.Uint64("tenant_id").
 			Default(entenum.TENANT_DEFAULT_ID).
-			Immutable().Comment("Tenant ID | 租户 ID").
-			Annotations(entsql.WithComments(true)),
+			Immutable().Comment("Tenant ID | 租户 ID"),
 	}
 }

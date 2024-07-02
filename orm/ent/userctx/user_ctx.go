@@ -9,7 +9,6 @@ import (
 )
 
 // GetUserIDFromCtx returns user id from context.
-// If error occurs, return default user ID.
 func GetUserIDFromCtx(ctx context.Context) (string, error) {
 	if userId, ok := ctx.Value("userId").(string); !ok {
 		if md, ok := metadata.FromIncomingContext(ctx); !ok {

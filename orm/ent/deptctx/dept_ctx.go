@@ -13,7 +13,6 @@ import (
 const DEPARTMENT_ADMIN = "department-admin"
 
 // GetDepartmentIDFromCtx returns department id from context.
-// If error occurs, return default department ID.
 func GetDepartmentIDFromCtx(ctx context.Context) (uint64, error) {
 	var departmentId string
 

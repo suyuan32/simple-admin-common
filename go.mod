@@ -4,7 +4,7 @@ go 1.22.3
 
 toolchain go1.22.4
 
-replace github.com/zeromicro/go-zero v1.6.6 => github.com/suyuan32/simple-admin-tools v1.6.15-beta
+replace github.com/zeromicro/go-zero v1.6.6 => github.com/suyuan32/simple-admin-tools v1.6.15-beta.1
 
 require (
 	entgo.io/ent v0.13.1

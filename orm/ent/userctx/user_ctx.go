@@ -2,6 +2,7 @@ package userctx
 
 import (
 	"context"
+
 	"github.com/zeromicro/go-zero/core/errorx"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest/enum"
@@ -15,7 +16,7 @@ func GetUserIDFromCtx(ctx context.Context) (string, error) {
 			logx.Error("failed to get user id from context", logx.Field("detail", ctx))
 			return "", errorx.NewInvalidArgumentError("failed to get user id from context")
 		} else {
-			if data := md.Get(enum.USER_ID_RPC_CTX_KEY); len(data) > 0 {
+			if data := md.Get(enum.UserIdRpcCtxKey); len(data) > 0 {
 				userId = data[0]
 				return userId, nil
 			} else {

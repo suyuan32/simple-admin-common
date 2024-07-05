@@ -3,11 +3,12 @@ package deptctx
 import (
 	"context"
 	"encoding/json"
+	"strconv"
+
 	"github.com/zeromicro/go-zero/core/errorx"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest/enum"
 	"google.golang.org/grpc/metadata"
-	"strconv"
 )
 
 const DEPARTMENT_ADMIN = "department-admin"
@@ -21,7 +22,7 @@ func GetDepartmentIDFromCtx(ctx context.Context) (uint64, error) {
 			logx.Error("failed to get department id from context", logx.Field("detail", ctx))
 			return 0, errorx.NewInvalidArgumentError("failed to get department ID")
 		} else {
-			if data := md.Get(enum.DEPARTMENT_ID_RPC_CTX_KEY); len(data) > 0 {
+			if data := md.Get(enum.DepartmentIdRpcCtxKey); len(data) > 0 {
 				departmentId = data[0]
 			} else {
 				return 0, errorx.NewInvalidArgumentError("failed to get department ID")

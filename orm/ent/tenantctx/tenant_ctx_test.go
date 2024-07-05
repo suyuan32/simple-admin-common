@@ -2,10 +2,11 @@ package tenantctx
 
 import (
 	"context"
-	"github.com/suyuan32/simple-admin-common/orm/ent/entenum"
-	"github.com/zeromicro/go-zero/rest/enum"
 	"reflect"
 	"testing"
+
+	"github.com/suyuan32/simple-admin-common/orm/ent/entenum"
+	"github.com/zeromicro/go-zero/rest/enum"
 )
 
 func TestAdminCtx(t *testing.T) {
@@ -20,7 +21,7 @@ func TestAdminCtx(t *testing.T) {
 		{
 			name: "test tenant admin context",
 			args: args{ctx: context.Background()},
-			want: context.WithValue(context.Background(), TENANT_ADMIN, "allow"),
+			want: context.WithValue(context.Background(), TenantAdmin, "allow"),
 		},
 	}
 	for _, tt := range tests {
@@ -43,12 +44,12 @@ func TestGetTenantAdminCtx(t *testing.T) {
 	}{
 		{
 			name: "test tenant admin context",
-			args: args{ctx: context.WithValue(context.Background(), TENANT_ADMIN, "allow")},
+			args: args{ctx: context.WithValue(context.Background(), TenantAdmin, "allow")},
 			want: true,
 		},
 		{
 			name: "test tenant admin wrong context",
-			args: args{ctx: context.WithValue(context.Background(), TENANT_ADMIN, "allowing")},
+			args: args{ctx: context.WithValue(context.Background(), TenantAdmin, "allowing")},
 			want: false,
 		},
 		{
@@ -82,13 +83,13 @@ func TestGetTenantIDFromCtx(t *testing.T) {
 	}{
 		{
 			name: "test tenant id",
-			args: args{ctx: context.WithValue(context.Background(), enum.TENANT_ID_CTX_KEY, "10")},
+			args: args{ctx: context.WithValue(context.Background(), enum.TenantIdCtxKey, "10")},
 			want: 10,
 		},
 		{
 			name: "test tenant default id",
 			args: args{ctx: context.Background()},
-			want: entenum.TENANT_DEFAULT_ID,
+			want: entenum.TenantDefaultId,
 		},
 	}
 	for _, tt := range tests {

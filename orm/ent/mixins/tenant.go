@@ -16,7 +16,7 @@ type TenantMixin struct {
 func (TenantMixin) Fields() []ent.Field {
 	return []ent.Field{
 		field.Uint64("tenant_id").
-			Default(entenum.TENANT_DEFAULT_ID).
+			Default(entenum.TenantDefaultId).
 			Immutable().Comment("Tenant ID | 租户 ID"),
 	}
 }

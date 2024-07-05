@@ -1,5 +1,5 @@
 package entenum
 
 const (
-	TENANT_DEFAULT_ID uint64 = 1
+	TenantDefaultId uint64 = 1
 )

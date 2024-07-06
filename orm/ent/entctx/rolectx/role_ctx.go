@@ -18,7 +18,7 @@ func GetRoleIDFromCtx(ctx context.Context) ([]string, error) {
 			logx.Error("failed to get role id from context", logx.Field("detail", ctx))
 			return nil, errorx.NewInvalidArgumentError("failed to get role id from context")
 		} else {
-			if data := md.Get(enum.UserIdRpcCtxKey); len(data) > 0 {
+			if data := md.Get(enum.RoleIdRpcCtxKey); len(data) > 0 {
 				roleIds := strings.Split(data[0], ",")
 				slices.Sort(roleIds)
 				return roleIds, nil

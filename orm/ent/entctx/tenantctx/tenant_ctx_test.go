@@ -7,6 +7,7 @@ import (
 
 	"github.com/suyuan32/simple-admin-common/orm/ent/entenum"
 	"github.com/zeromicro/go-zero/rest/enum"
+	"google.golang.org/grpc/metadata"
 )
 
 func TestAdminCtx(t *testing.T) {
@@ -90,6 +91,13 @@ func TestGetTenantIDFromCtx(t *testing.T) {
 			name: "test tenant default id",
 			args: args{ctx: context.Background()},
 			want: entenum.TenantDefaultId,
+		},
+		{
+			name: "test meta context",
+			args: args{ctx: metadata.NewIncomingContext(context.Background(), metadata.New(map[string]string{
+				enum.TenantIdCtxKey: "10",
+			}))},
+			want: 10,
 		},
 	}
 	for _, tt := range tests {

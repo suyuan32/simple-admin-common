@@ -3,6 +3,9 @@ package userctx
 import (
 	"context"
 	"testing"
+
+	"github.com/zeromicro/go-zero/rest/enum"
+	"google.golang.org/grpc/metadata"
 )
 
 func TestGetUserIDFromCtx(t *testing.T) {
@@ -26,6 +29,13 @@ func TestGetUserIDFromCtx(t *testing.T) {
 			args:    args{ctx: context.WithValue(context.Background(), "userId", "asdfghjkl")},
 			want:    "asdfghjkl",
 			wantErr: false,
+		},
+		{
+			name: "test meta context",
+			args: args{ctx: metadata.NewIncomingContext(context.Background(), metadata.New(map[string]string{
+				enum.UserIdRpcCtxKey: "asdfghjkl",
+			}))},
+			want: "asdfghjkl",
 		},
 	}
 	for _, tt := range tests {

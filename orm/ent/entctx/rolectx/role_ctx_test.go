@@ -4,6 +4,9 @@ import (
 	"context"
 	"slices"
 	"testing"
+
+	"github.com/zeromicro/go-zero/rest/enum"
+	"google.golang.org/grpc/metadata"
 )
 
 func TestGetRoleIDFromCtx(t *testing.T) {
@@ -25,6 +28,14 @@ func TestGetRoleIDFromCtx(t *testing.T) {
 		{
 			name:    "test role ctx",
 			args:    args{ctx: context.WithValue(context.Background(), "roleId", "001,002")},
+			want:    []string{"001", "002"},
+			wantErr: false,
+		},
+		{
+			name: "test meta context",
+			args: args{ctx: metadata.NewIncomingContext(context.Background(), metadata.New(map[string]string{
+				enum.RoleIdRpcCtxKey: "001,002",
+			}))},
 			want:    []string{"001", "002"},
 			wantErr: false,
 		},

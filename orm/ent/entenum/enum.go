@@ -7,17 +7,22 @@ const (
 
 const (
 	// DataPermAll is the data permission of all data
-	DataPermAll = 1
+	DataPermAll    = 1
+	DataPermAllStr = "1"
 
 	// DataPermCustomDept is the data permission of custom department data
-	DataPermCustomDept = 2
+	DataPermCustomDept    = 2
+	DataPermCustomDeptStr = "2"
 
 	// DataPermOwnDeptAndSub is the data permission of users's own department and sub departments data
-	DataPermOwnDeptAndSub = 3
+	DataPermOwnDeptAndSub    = 3
+	DataPermOwnDeptAndSubStr = "3"
 
 	// DataPermOwnDept is the data permission of users's own department data
-	DataPermOwnDept = 4
+	DataPermOwnDept    = 4
+	DataPermOwnDeptStr = "4"
 
 	// DataPermSelf is the data permission of your own data
-	DataPermSelf = 5
+	DataPermSelf    = 5
+	DataPermSelfStr = "5"
 )

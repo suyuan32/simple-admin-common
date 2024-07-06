@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/suyuan32/simple-admin-common/orm/ent/entenum"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -21,9 +22,21 @@ func TestGetScopeFromCtx(t *testing.T) {
 		{
 			name: "test scope",
 			args: args{ctx: metadata.NewIncomingContext(context.Background(), metadata.New(map[string]string{
-				ScopeKey: "1",
+				string(ScopeKey): entenum.DataPermAllStr,
 			}))},
-			want:    uint8(1),
+			want:    entenum.DataPermAll,
+			wantErr: false,
+		},
+		{
+			name:    "test nil context",
+			args:    args{ctx: metadata.NewIncomingContext(context.Background(), metadata.New(map[string]string{}))},
+			want:    0,
+			wantErr: true,
+		},
+		{
+			name:    "test normal context",
+			args:    args{ctx: context.WithValue(context.Background(), ScopeKey, entenum.DataPermAllStr)},
+			want:    entenum.DataPermAll,
 			wantErr: false,
 		},
 	}
@@ -54,8 +67,20 @@ func TestGetCustomDeptFromCtx(t *testing.T) {
 		{
 			name: "test custom department",
 			args: args{ctx: metadata.NewIncomingContext(context.Background(), metadata.New(map[string]string{
-				CustomDeptKey: "1,3,20,8",
+				string(CustomDeptKey): "1,3,20,8",
 			}))},
+			want:    []uint64{1, 3, 20, 8},
+			wantErr: false,
+		},
+		{
+			name:    "test nil context",
+			args:    args{ctx: metadata.NewIncomingContext(context.Background(), metadata.New(map[string]string{}))},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "test normal context",
+			args:    args{ctx: context.WithValue(context.Background(), CustomDeptKey, "1,3,20,8")},
 			want:    []uint64{1, 3, 20, 8},
 			wantErr: false,
 		},
@@ -87,8 +112,20 @@ func TestGetFilterFieldFromCtx(t *testing.T) {
 		{
 			name: "test filter field",
 			args: args{ctx: metadata.NewIncomingContext(context.Background(), metadata.New(map[string]string{
-				FilterFieldKey: "userId",
+				string(FilterFieldKey): "userId",
 			}))},
+			want:    "userId",
+			wantErr: false,
+		},
+		{
+			name:    "test nil context",
+			args:    args{ctx: metadata.NewIncomingContext(context.Background(), metadata.New(map[string]string{}))},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name:    "test normal context",
+			args:    args{ctx: context.WithValue(context.Background(), FilterFieldKey, "userId")},
 			want:    "userId",
 			wantErr: false,
 		},

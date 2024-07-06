@@ -10,7 +10,9 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-const TenantAdmin string = "tenant-admin"
+type TenantKey string
+
+const TenantAdmin TenantKey = "tenant-admin"
 
 // GetTenantIDFromCtx returns tenant id from context.
 // If error occurs, return default tenant ID.

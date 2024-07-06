@@ -28,3 +28,6 @@ const RedisCasbinChannel = "/casbin"
 
 // RedisApiPermissionCountPrefix is the prefix of api permission access times left in redis
 const RedisApiPermissionCountPrefix = "API:PERMISSION:"
+
+// RedisDataPermissionPrefix is the prefix of data permission in redis
+const RedisDataPermissionPrefix = "DATAPERM:"

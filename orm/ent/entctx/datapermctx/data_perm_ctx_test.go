@@ -99,6 +99,51 @@ func TestGetCustomDeptFromCtx(t *testing.T) {
 	}
 }
 
+func TestGetSubDeptFromCtx(t *testing.T) {
+	type args struct {
+		ctx context.Context
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []uint64
+		wantErr bool
+	}{
+		{
+			name: "test custom department",
+			args: args{ctx: metadata.NewIncomingContext(context.Background(), metadata.New(map[string]string{
+				string(SubDeptKey): "1,3,20,8",
+			}))},
+			want:    []uint64{1, 3, 20, 8},
+			wantErr: false,
+		},
+		{
+			name:    "test nil context",
+			args:    args{ctx: metadata.NewIncomingContext(context.Background(), metadata.New(map[string]string{}))},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "test normal context",
+			args:    args{ctx: context.WithValue(context.Background(), SubDeptKey, "1,3,20,8")},
+			want:    []uint64{1, 3, 20, 8},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetSubDeptFromCtx(tt.args.ctx)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetSubDeptFromCtx() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetSubDeptFromCtx() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestGetFilterFieldFromCtx(t *testing.T) {
 	type args struct {
 		ctx context.Context

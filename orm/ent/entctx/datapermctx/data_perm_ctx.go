@@ -21,6 +21,9 @@ const (
 	// CustomDeptKey is the key to store custom department ids
 	CustomDeptKey DataPermKey = "data-perm-custom-dept"
 
+	// SubDeptKey is the key to store sub department ids
+	SubDeptKey DataPermKey = "data-perm-sub-dept"
+
 	// FilterFieldKey is the key to store filter field
 	FilterFieldKey DataPermKey = "data-perm-filter-field"
 )
@@ -94,6 +97,44 @@ func GetCustomDeptFromCtx(ctx context.Context) ([]uint64, error) {
 	}
 
 	return customDeptIds, nil
+}
+
+// WithSubDeptContext returns context with sub department ids
+func WithSubDeptContext(ctx context.Context, deptIds string) context.Context {
+	ctx = metadata.AppendToOutgoingContext(ctx, string(SubDeptKey), deptIds)
+	ctx = context.WithValue(ctx, SubDeptKey, deptIds)
+	return ctx
+}
+
+// GetSubDeptFromCtx returns sub department ids from context
+func GetSubDeptFromCtx(ctx context.Context) ([]uint64, error) {
+	var subDept string
+	var ok bool
+	var subDeptIds []uint64
+
+	if subDept, ok = ctx.Value(SubDeptKey).(string); !ok {
+		if md, ok := metadata.FromIncomingContext(ctx); !ok {
+			logx.Error("failed to get sub departmrnt ids from context", logx.Field("detail", ctx))
+			return nil, errorx.NewInvalidArgumentError("failed to get sub departmrnt ids")
+		} else {
+			if data := md.Get(string(SubDeptKey)); len(data) > 0 {
+				subDept = data[0]
+			} else {
+				return nil, errorx.NewInvalidArgumentError("failed to get sub departmrnt ids")
+			}
+		}
+	}
+
+	for _, v := range strings.Split(subDept, ",") {
+		id, err := strconv.Atoi(v)
+		if err != nil {
+			logx.Error("failed to convert sub departmrnt ids", logx.Field("detail", err), logx.Field("data", v))
+			return nil, errorx.NewInvalidArgumentError("failed to get sub departmrnt ids")
+		}
+		subDeptIds = append(subDeptIds, uint64(id))
+	}
+
+	return subDeptIds, nil
 }
 
 // WithFilterFieldContext returns context with filter field

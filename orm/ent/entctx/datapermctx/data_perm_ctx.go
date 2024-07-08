@@ -123,10 +123,10 @@ func GetFilterFieldFromCtx(ctx context.Context) (string, error) {
 
 // GetRoleCustomDeptDataPermRedisKey returns the key to store role custom department data into redis
 func GetRoleCustomDeptDataPermRedisKey(roleCodes []string) string {
-	return fmt.Sprintf("%s:ROLE:%s:CustomDept", config.RedisDataPermissionPrefix, strings.Join(roleCodes, ","))
+	return fmt.Sprintf("%sROLE:%s:CustomDept", config.RedisDataPermissionPrefix, strings.Join(roleCodes, ","))
 }
 
 // GetSubDeptDataPermRedisKey returns the key to store sub department data into redis
 func GetSubDeptDataPermRedisKey(departmentId uint64) string {
-	return fmt.Sprintf("%s:DEPT:%d:SubDept", config.RedisDataPermissionPrefix, departmentId)
+	return fmt.Sprintf("%sDEPT:%d:SubDept", config.RedisDataPermissionPrefix, departmentId)
 }

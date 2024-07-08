@@ -11,8 +11,6 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-const DEPARTMENT_ADMIN = "department-admin"
-
 // GetDepartmentIDFromCtx returns department id from context.
 func GetDepartmentIDFromCtx(ctx context.Context) (uint64, error) {
 	var departmentId string
@@ -38,24 +36,4 @@ func GetDepartmentIDFromCtx(ctx context.Context) (uint64, error) {
 		return 0, errorx.NewInvalidArgumentError("failed to get department ID")
 	}
 	return uint64(id), nil
-}
-
-// GetDepartmentAdminCtx returns true when context including admin authority info.
-// If it returns true, the operation can be executed without department privacy layer.
-func GetDepartmentAdminCtx(ctx context.Context) bool {
-	var policy string
-	var ok bool
-
-	if policy, ok = ctx.Value(DEPARTMENT_ADMIN).(string); ok {
-		if policy == "allow" {
-			return true
-		}
-	}
-
-	return false
-}
-
-// AdminCtx returns a context with admin authority info.
-func AdminCtx(ctx context.Context) context.Context {
-	return context.WithValue(ctx, DEPARTMENT_ADMIN, "allow")
 }

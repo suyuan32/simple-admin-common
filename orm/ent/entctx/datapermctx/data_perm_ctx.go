@@ -2,9 +2,11 @@ package datapermctx
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 
+	"github.com/suyuan32/simple-admin-common/config"
 	"github.com/zeromicro/go-zero/core/errorx"
 	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc/metadata"
@@ -117,4 +119,14 @@ func GetFilterFieldFromCtx(ctx context.Context) (string, error) {
 	} else {
 		return filterField, nil
 	}
+}
+
+// GetRoleCustomDeptDataPermRedisKey returns the key to store role custom department data into redis
+func GetRoleCustomDeptDataPermRedisKey(roleCodes []string) string {
+	return fmt.Sprintf("%s:ROLE:%s:CustomDept", config.RedisDataPermissionPrefix, strings.Join(roleCodes, ","))
+}
+
+// GetSubDeptDataPermRedisKey returns the key to store sub department data into redis
+func GetSubDeptDataPermRedisKey(departmentId uint64) string {
+	return fmt.Sprintf("%s:DEPT:%d:SubDept", config.RedisDataPermissionPrefix, departmentId)
 }

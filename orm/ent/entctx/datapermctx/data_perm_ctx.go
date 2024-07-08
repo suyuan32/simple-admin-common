@@ -126,6 +126,11 @@ func GetRoleCustomDeptDataPermRedisKey(roleCodes []string) string {
 	return fmt.Sprintf("%sROLE:%s:CustomDept", config.RedisDataPermissionPrefix, strings.Join(roleCodes, ","))
 }
 
+// GetRoleScopeDataPermRedisKey returns the key to store role data scope into redis
+func GetRoleScopeDataPermRedisKey(roleCodes []string) string {
+	return fmt.Sprintf("%sROLE:%s:Scope", config.RedisDataPermissionPrefix, strings.Join(roleCodes, ","))
+}
+
 // GetSubDeptDataPermRedisKey returns the key to store sub department data into redis
 func GetSubDeptDataPermRedisKey(departmentId uint64) string {
 	return fmt.Sprintf("%sDEPT:%d:SubDept", config.RedisDataPermissionPrefix, departmentId)

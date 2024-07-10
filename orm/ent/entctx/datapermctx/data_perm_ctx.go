@@ -179,15 +179,15 @@ func GetSubDeptDataPermRedisKey(departmentId uint64) string {
 
 // GetTenantRoleCustomDeptDataPermRedisKey returns the key to store tenant's role custom department data into redis
 func GetTenantRoleCustomDeptDataPermRedisKey(roleCodes []string, tenantId uint64) string {
-	return fmt.Sprintf("%s:%d:ROLE:%s:CustomDept", config.RedisDataPermissionPrefix, tenantId, strings.Join(roleCodes, ","))
+	return fmt.Sprintf("%s%d:ROLE:%s:CustomDept", config.RedisDataPermissionPrefix, tenantId, strings.Join(roleCodes, ","))
 }
 
 // GetTenantRoleScopeDataPermRedisKey returns the key to store tenant's role data scope into redis
 func GetTenantRoleScopeDataPermRedisKey(roleCodes []string, tenantId uint64) string {
-	return fmt.Sprintf("%s:%d:ROLE:%s:Scope", config.RedisDataPermissionPrefix, tenantId, strings.Join(roleCodes, ","))
+	return fmt.Sprintf("%s%d:ROLE:%s:Scope", config.RedisDataPermissionPrefix, tenantId, strings.Join(roleCodes, ","))
 }
 
 // GetTenantSubDeptDataPermRedisKey returns the key to store tenant's sub department data into redis
 func GetTenantSubDeptDataPermRedisKey(departmentId uint64, tenantId uint64) string {
-	return fmt.Sprintf("%s:%d:DEPT:%d:SubDept", config.RedisDataPermissionPrefix, tenantId, departmentId)
+	return fmt.Sprintf("%s%d:DEPT:%d:SubDept", config.RedisDataPermissionPrefix, tenantId, departmentId)
 }

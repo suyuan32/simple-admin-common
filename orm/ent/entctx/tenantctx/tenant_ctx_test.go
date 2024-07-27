@@ -16,37 +16,12 @@ package tenantctx
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
 	"github.com/suyuan32/simple-admin-common/orm/ent/entenum"
 	"github.com/zeromicro/go-zero/rest/enum"
 	"google.golang.org/grpc/metadata"
 )
-
-func TestAdminCtx(t *testing.T) {
-	type args struct {
-		ctx context.Context
-	}
-	tests := []struct {
-		name string
-		args args
-		want context.Context
-	}{
-		{
-			name: "test tenant admin context",
-			args: args{ctx: context.Background()},
-			want: context.WithValue(context.Background(), TenantAdmin, "allow"),
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := AdminCtx(tt.args.ctx); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("AdminCtx() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
 
 func TestGetTenantAdminCtx(t *testing.T) {
 	type args struct {

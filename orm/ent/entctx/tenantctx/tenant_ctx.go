@@ -61,10 +61,20 @@ func GetTenantAdminCtx(ctx context.Context) bool {
 	var policy string
 	var ok bool
 
-	if policy, ok = ctx.Value(TenantAdmin).(string); ok {
-		if policy == "allow" {
-			return true
+	if policy, ok = ctx.Value(TenantAdmin).(string); !ok {
+		if md, ok := metadata.FromIncomingContext(ctx); !ok {
+			return false
+		} else {
+			if data := md.Get(string(TenantAdmin)); len(data) > 0 {
+				policy = data[0]
+			} else {
+				return false
+			}
 		}
+	}
+
+	if policy == "allow" {
+		return true
 	}
 
 	return false
@@ -72,5 +82,6 @@ func GetTenantAdminCtx(ctx context.Context) bool {
 
 // AdminCtx returns a context with admin authority info.
 func AdminCtx(ctx context.Context) context.Context {
+	ctx = metadata.AppendToOutgoingContext(ctx, string(TenantAdmin), "allow")
 	return context.WithValue(ctx, TenantAdmin, "allow")
 }

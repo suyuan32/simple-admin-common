@@ -77,6 +77,20 @@ func TestGetTenantAdminCtx(t *testing.T) {
 			args: args{ctx: AdminCtx(context.Background())},
 			want: true,
 		},
+		{
+			name: "test meta context",
+			args: args{ctx: metadata.NewIncomingContext(context.Background(), metadata.New(map[string]string{
+				string(TenantAdmin): "allow",
+			}))},
+			want: true,
+		},
+		{
+			name: "test meta deny context",
+			args: args{ctx: metadata.NewIncomingContext(context.Background(), metadata.New(map[string]string{
+				string(TenantAdmin): "deny",
+			}))},
+			want: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -2,13 +2,13 @@ module github.com/suyuan32/simple-admin-common
 
 go 1.22.5
 
-replace github.com/zeromicro/go-zero v1.6.6 => github.com/suyuan32/simple-admin-tools v1.6.15
+replace github.com/zeromicro/go-zero v1.7.0 => github.com/suyuan32/simple-admin-tools v1.7.0
 
 require (
 	entgo.io/ent v0.13.1
 	github.com/apache/rocketmq-client-go/v2 v2.1.2
 	github.com/casbin/casbin/v2 v2.98.0
-	github.com/casbin/ent-adapter v0.3.0
+	github.com/casbin/ent-adapter v0.4.0
 	github.com/casbin/redis-watcher/v2 v2.5.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/gofrs/uuid/v5 v5.2.0
@@ -18,9 +18,9 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mojocn/base64Captcha v1.3.6
 	github.com/nicksnyder/go-i18n/v2 v2.4.0
-	github.com/redis/go-redis/v9 v9.6.0
+	github.com/redis/go-redis/v9 v9.6.1
 	github.com/stretchr/testify v1.9.0
-	github.com/zeromicro/go-zero v1.6.6
+	github.com/zeromicro/go-zero v1.7.0
 	go.mongodb.org/mongo-driver v1.16.0
 	golang.org/x/crypto v0.25.0
 	golang.org/x/text v0.16.0
@@ -52,7 +52,7 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.21.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.21.0 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.14.3 // indirect
@@ -94,7 +94,7 @@ require (
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
-	github.com/youmark/pkcs8 v0.0.0-20240424034433-3c2c7870ae76 // indirect
+	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	github.com/zclconf/go-cty v1.15.0 // indirect
 	go.opentelemetry.io/otel v1.28.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.28.0 // indirect
@@ -115,8 +115,8 @@ require (
 	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.23.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240711142825-46eb208f015d // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240711142825-46eb208f015d // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240725223205-93522f1f2a9f // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240725223205-93522f1f2a9f // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

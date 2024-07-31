@@ -79,7 +79,7 @@ func (c *ProducerConf) Validate() error {
 }
 
 // MustNewProducer returns a producer. If there are errors, it will exist.
-func (c *ProducerConf) MustNewProducer() *rocketmq.Producer {
+func (c *ProducerConf) MustNewProducer() rocketmq.Producer {
 	err := c.Validate()
 	logx.Must(err)
 
@@ -99,7 +99,7 @@ func (c *ProducerConf) MustNewProducer() *rocketmq.Producer {
 
 	logx.Must(err)
 
-	return &p
+	return p
 }
 
 // ConsumerConf is the configuration of rocketmq consumer.
@@ -151,7 +151,7 @@ func (c *ConsumerConf) Validate() error {
 }
 
 // MustNewPushConsumer returns a push consumer. If there are errors, it will exist.
-func (c *ConsumerConf) MustNewPushConsumer() *rocketmq.PushConsumer {
+func (c *ConsumerConf) MustNewPushConsumer() rocketmq.PushConsumer {
 	err := c.Validate()
 	logx.Must(err)
 
@@ -181,11 +181,11 @@ func (c *ConsumerConf) MustNewPushConsumer() *rocketmq.PushConsumer {
 
 	logx.Must(err)
 
-	return &csm
+	return csm
 }
 
 // MustNewPullConsumer returns a pull consumer. If there are errors, it will exist.
-func (c *ConsumerConf) MustNewPullConsumer() *rocketmq.PullConsumer {
+func (c *ConsumerConf) MustNewPullConsumer() rocketmq.PullConsumer {
 	err := c.Validate()
 	logx.Must(err)
 
@@ -215,5 +215,5 @@ func (c *ConsumerConf) MustNewPullConsumer() *rocketmq.PullConsumer {
 
 	logx.Must(err)
 
-	return &pcsm
+	return pcsm
 }

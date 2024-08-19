@@ -24,7 +24,8 @@ import (
 )
 
 type Conf struct {
-	Hosts         []string `json:",default=[nats://127.0.0.1:4222]"`
+	// Host url example: nats://localhost:4222
+	Hosts         []string `json:","`
 	ReconnectWait int      `json:",optional,default=5"`
 	MaxReconnect  int      `json:",optional,default=5"`
 	UserCred      string   `json:",optional"`
@@ -72,6 +73,7 @@ func (c Conf) NewConnect() (*nats.Conn, error) {
 	return connect, nil
 }
 
+// NewJetStream returns jet stream client instance
 func (c Conf) NewJetStream() (jetstream.JetStream, error) {
 	conn, err := c.NewConnect()
 	if err != nil {

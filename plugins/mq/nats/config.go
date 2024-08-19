@@ -25,8 +25,8 @@ import (
 
 type Conf struct {
 	Hosts         []string `json:",default=[nats://127.0.0.1:4222]"`
-	ReconnectWait int      `json:",default=5"`
-	MaxReconnect  int      `json:",default=5"`
+	ReconnectWait int      `json:",optional,default=5"`
+	MaxReconnect  int      `json:",optional,default=5"`
 	UserCred      string   `json:",optional"`
 	NkeyFile      string   `json:",optional"`
 	TlsClientCert string   `json:",optional"`

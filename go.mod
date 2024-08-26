@@ -1,11 +1,10 @@
 module github.com/suyuan32/simple-admin-common
 
 go 1.22.5
-
 replace github.com/zeromicro/go-zero v1.7.0 => github.com/suyuan32/simple-admin-tools v1.7.0
 
 require (
-	entgo.io/ent v0.14.0
+	entgo.io/ent v0.14.1
 	github.com/apache/rocketmq-client-go/v2 v2.1.2
 	github.com/casbin/casbin/v2 v2.98.0
 	github.com/casbin/ent-adapter v0.4.0

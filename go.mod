@@ -1,11 +1,11 @@
 module github.com/suyuan32/simple-admin-common
 
-go 1.22.5
+go 1.23.0
 
 replace github.com/zeromicro/go-zero v1.7.0 => github.com/suyuan32/simple-admin-tools v1.7.0
 
 require (
-	entgo.io/ent v0.14.0
+	entgo.io/ent v0.14.1
 	github.com/apache/rocketmq-client-go/v2 v2.1.2
 	github.com/casbin/casbin/v2 v2.98.0
 	github.com/casbin/ent-adapter v0.4.0
@@ -33,7 +33,7 @@ require (
 )
 
 require (
-	ariga.io/atlas v0.26.0 // indirect
+	ariga.io/atlas v0.26.1 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
@@ -55,7 +55,7 @@ require (
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.21.0 // indirect
-	github.com/hashicorp/hcl/v2 v2.21.0 // indirect
+	github.com/hashicorp/hcl/v2 v2.22.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgx/v5 v5.6.0 // indirect
@@ -113,7 +113,7 @@ require (
 	golang.org/x/time v0.6.0 // indirect
 	golang.org/x/tools v0.24.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240725223205-93522f1f2a9f // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240814211410-ddb44dafa142 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240826202546-f6391c0de4c7 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

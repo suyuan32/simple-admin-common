@@ -26,7 +26,7 @@ require (
 	golang.org/x/crypto v0.27.0
 	golang.org/x/net v0.29.0
 	golang.org/x/text v0.18.0
-	google.golang.org/grpc v1.66.0
+	google.golang.org/grpc v1.66.2
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/driver/postgres v1.5.9
 	gorm.io/gorm v1.25.11

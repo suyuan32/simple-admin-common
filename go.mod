@@ -19,7 +19,7 @@ require (
 	github.com/mojocn/base64Captcha v1.3.6
 	github.com/nats-io/nats.go v1.37.0
 	github.com/nicksnyder/go-i18n/v2 v2.4.0
-	github.com/redis/go-redis/v9 v9.6.1
+	github.com/redis/go-redis/v9 v9.6.2
 	github.com/stretchr/testify v1.9.0
 	github.com/zeromicro/go-zero v1.7.2
 	go.mongodb.org/mongo-driver v1.17.1

@@ -2,7 +2,7 @@ module github.com/suyuan32/simple-admin-common
 
 go 1.23.0
 
-replace github.com/zeromicro/go-zero v1.7.5 => github.com/suyuan32/simple-admin-tools v1.7.5
+replace github.com/zeromicro/go-zero v1.7.6 => github.com/suyuan32/simple-admin-tools v1.7.6
 
 require (
 	entgo.io/ent v0.14.1
@@ -21,7 +21,7 @@ require (
 	github.com/nicksnyder/go-i18n/v2 v2.4.1
 	github.com/redis/go-redis/v9 v9.7.0
 	github.com/stretchr/testify v1.10.0
-	github.com/zeromicro/go-zero v1.7.5
+	github.com/zeromicro/go-zero v1.7.6
 	go.mongodb.org/mongo-driver v1.17.1
 	golang.org/x/crypto v0.31.0
 	golang.org/x/net v0.33.0

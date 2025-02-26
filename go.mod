@@ -8,7 +8,7 @@ require (
 	entgo.io/ent v0.14.2
 	github.com/apache/rocketmq-client-go/v2 v2.1.2
 	github.com/casbin/casbin/v2 v2.103.0
-	github.com/casbin/ent-adapter v0.5.0
+	github.com/casbin/ent-adapter v1.0.0
 	github.com/casbin/redis-watcher/v2 v2.5.0
 	github.com/go-sql-driver/mysql v1.9.0
 	github.com/gofrs/uuid/v5 v5.3.1

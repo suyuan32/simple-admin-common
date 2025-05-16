@@ -31,3 +31,6 @@ const RedisApiPermissionCountPrefix = "API:PERMISSION:"
 
 // RedisDataPermissionPrefix is the prefix of data permission in redis
 const RedisDataPermissionPrefix = "DATAPERM:"
+
+// RedisDynamicConfigurationPrefix is the prefix of dynamic configuration in redis
+const RedisDynamicConfigurationPrefix = "CONFIGURATION:"

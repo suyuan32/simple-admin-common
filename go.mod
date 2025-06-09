@@ -4,7 +4,7 @@ go 1.24.0
 
 toolchain go1.24.2
 
-replace github.com/zeromicro/go-zero v1.8.3 => github.com/suyuan32/simple-admin-tools v1.8.3
+replace github.com/zeromicro/go-zero v1.8.4 => github.com/suyuan32/simple-admin-tools v1.8.4
 
 require (
 	entgo.io/ent v0.14.4
@@ -23,7 +23,7 @@ require (
 	github.com/nicksnyder/go-i18n/v2 v2.6.0
 	github.com/redis/go-redis/v9 v9.10.0
 	github.com/stretchr/testify v1.10.0
-	github.com/zeromicro/go-zero v1.8.3
+	github.com/zeromicro/go-zero v1.8.4
 	go.mongodb.org/mongo-driver v1.17.4
 	golang.org/x/crypto v0.39.0
 	golang.org/x/net v0.41.0

@@ -34,8 +34,8 @@ func SetDynamicConfigurationToRedis(rds redis.UniversalClient, category, key, va
 	return err
 }
 
-// GetDynamicConfigurationToRedis gets configuration data from redis
-func GetDynamicConfigurationToRedis(rds redis.UniversalClient, category, key string) (string, error) {
+// GetDynamicConfigurationFromRedis gets configuration data from redis
+func GetDynamicConfigurationFromRedis(rds redis.UniversalClient, category, key string) (string, error) {
 	result, err := rds.Get(context.Background(), fmt.Sprintf("%s%s:%s", config.RedisDynamicConfigurationPrefix, category, key)).Result()
 	if err != nil {
 		logx.Errorw("failed to get dynamic configuration from redis", logx.Field("details", err), logx.Field("category", category),
@@ -54,8 +54,8 @@ func SetTenantDynamicConfigurationToRedis(rds redis.UniversalClient, tenantId, c
 	return err
 }
 
-// GetTenantDynamicConfigurationToRedis gets configuration data from redis by tenant ID
-func GetTenantDynamicConfigurationToRedis(rds redis.UniversalClient, tenantId, category, key string) (string, error) {
+// GetTenantDynamicConfigurationFromRedis gets configuration data from redis by tenant ID
+func GetTenantDynamicConfigurationFromRedis(rds redis.UniversalClient, tenantId, category, key string) (string, error) {
 	result, err := rds.Get(context.Background(), fmt.Sprintf("%s%s:%s:%s", config.RedisDynamicConfigurationPrefix, tenantId, category, key)).Result()
 	if err != nil {
 		logx.Errorw("failed to get dynamic configuration from redis", logx.Field("details", err), logx.Field("category", category),

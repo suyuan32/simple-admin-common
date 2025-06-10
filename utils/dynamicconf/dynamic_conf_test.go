@@ -91,13 +91,13 @@ func TestGetDynamicConfigurationToRedis(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetDynamicConfigurationToRedis(tt.args.rds, tt.args.category, tt.args.key)
+			got, err := GetDynamicConfigurationFromRedis(tt.args.rds, tt.args.category, tt.args.key)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("GetDynamicConfigurationToRedis() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("GetDynamicConfigurationFromRedis() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("GetDynamicConfigurationToRedis() got = %v, want %v", got, tt.want)
+				t.Errorf("GetDynamicConfigurationFromRedis() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -191,13 +191,13 @@ func TestGetTenantDynamicConfigurationToRedis(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetTenantDynamicConfigurationToRedis(tt.args.rds, tt.args.tenantId, tt.args.category, tt.args.key)
+			got, err := GetTenantDynamicConfigurationFromRedis(tt.args.rds, tt.args.tenantId, tt.args.category, tt.args.key)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("GetTenantDynamicConfigurationToRedis() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("GetTenantDynamicConfigurationFromRedis() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("GetTenantDynamicConfigurationToRedis() got = %v, want %v", got, tt.want)
+				t.Errorf("GetTenantDynamicConfigurationFromRedis() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

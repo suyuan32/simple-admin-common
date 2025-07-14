@@ -4,7 +4,7 @@ go 1.24.0
 
 toolchain go1.24.2
 
-replace github.com/zeromicro/go-zero v1.8.5 => github.com/suyuan32/simple-admin-tools v1.8.5
+replace github.com/zeromicro/go-zero v1.8.5 => github.com/suyuan32/simple-admin-tools v1.8.5-stable
 
 require (
 	entgo.io/ent v0.14.4
@@ -120,7 +120,7 @@ require (
 	golang.org/x/term v0.33.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	golang.org/x/tools v0.34.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250603155806-513f23925822 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect

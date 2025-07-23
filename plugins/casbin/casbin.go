@@ -15,6 +15,7 @@
 package casbin
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 
@@ -89,11 +90,17 @@ func (l CasbinConf) MustNewCasbin(dbType, dsn string) *casbin.Enforcer {
 // MustNewRedisWatcher returns redis watcher. If there are errors, it will exist.
 // f function will be called if the policies are updated.
 func (l CasbinConf) MustNewRedisWatcher(c redis.RedisConf, f func(string2 string)) persist.Watcher {
+	opt := redis2.Options{
+		Network:  "tcp",
+		Password: c.Pass,
+	}
+
+	if c.Tls {
+		opt.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	}
+
 	w, err := rediswatcher.NewWatcher(c.Host, rediswatcher.WatcherOptions{
-		Options: redis2.Options{
-			Network:  "tcp",
-			Password: c.Pass,
-		},
+		Options:    opt,
 		Channel:    config.RedisCasbinChannel,
 		IgnoreSelf: false,
 	})
@@ -121,12 +128,18 @@ func (l CasbinConf) MustNewCasbinWithRedisWatcher(dbType, dsn string, c redis.Re
 // MustNewOriginalRedisWatcher returns redis watcher which uses original go redis. If there are errors, it will exist.
 // f function will be called if the policies are updated.
 func (l CasbinConf) MustNewOriginalRedisWatcher(c config.RedisConf, f func(string2 string)) persist.Watcher {
+	opt := redis2.Options{
+		Network:  "tcp",
+		Username: c.Username,
+		Password: c.Pass,
+	}
+
+	if c.Tls {
+		opt.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	}
+
 	w, err := rediswatcher.NewWatcher(c.Host, rediswatcher.WatcherOptions{
-		Options: redis2.Options{
-			Network:  "tcp",
-			Username: c.Username,
-			Password: c.Pass,
-		},
+		Options:    opt,
 		Channel:    fmt.Sprintf("%s-%d", config.RedisCasbinChannel, c.Db),
 		IgnoreSelf: false,
 	})

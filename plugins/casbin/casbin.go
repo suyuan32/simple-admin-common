@@ -92,6 +92,7 @@ func (l CasbinConf) MustNewCasbin(dbType, dsn string) *casbin.Enforcer {
 func (l CasbinConf) MustNewRedisWatcher(c redis.RedisConf, f func(string2 string)) persist.Watcher {
 	opt := redis2.Options{
 		Network:  "tcp",
+		Username: c.User,
 		Password: c.Pass,
 	}
 

@@ -15,6 +15,7 @@
 package asynq
 
 import (
+	"crypto/tls"
 	"fmt"
 	"time"
 
@@ -30,6 +31,7 @@ type AsynqConf struct {
 	Addr         string `json:",default=127.0.0.1:6379"`
 	Username     string `json:",optional"`
 	Pass         string `json:",optional"`
+	Tls          bool   `json:",optional,default=false"`
 	DB           int    `json:",optional,default=0"`
 	Concurrency  int    `json:",optional,default=20"` // max concurrent process job task num
 	SyncInterval int    `json:",optional,default=10"` // seconds, this field specifies how often sync should happen
@@ -41,6 +43,7 @@ func (c *AsynqConf) WithRedisConf(r redis.RedisConf) *AsynqConf {
 	c.Pass = r.Pass
 	c.Addr = r.Host
 	c.DB = 0
+	c.Tls = r.Tls
 	return c
 }
 
@@ -50,18 +53,24 @@ func (c *AsynqConf) WithOriginalRedisConf(r config.RedisConf) *AsynqConf {
 	c.Addr = r.Host
 	c.Username = r.Username
 	c.DB = r.Db
+	c.Tls = r.Tls
 	return c
 }
 
 // NewRedisOpt returns a redis options from Asynq Configuration.
 func (c *AsynqConf) NewRedisOpt() *asynq.RedisClientOpt {
-	return &asynq.RedisClientOpt{
+	opt := &asynq.RedisClientOpt{
 		Network:  "tcp",
 		Addr:     c.Addr,
 		Username: c.Username,
 		Password: c.Pass,
 		DB:       c.DB,
 	}
+
+	if c.Tls {
+		opt.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	}
+	return opt
 }
 
 // NewClient returns a client from the configuration.

@@ -1,15 +1,13 @@
 module github.com/suyuan32/simple-admin-common
 
-go 1.24.0
-
-toolchain go1.24.2
+go 1.25.0
 
 replace github.com/zeromicro/go-zero v1.9.0 => github.com/suyuan32/simple-admin-tools v1.9.0
 
 require (
 	entgo.io/ent v0.14.5
 	github.com/apache/rocketmq-client-go/v2 v2.1.2
-	github.com/casbin/casbin/v2 v2.120.0
+	github.com/casbin/casbin/v2 v2.122.0
 	github.com/casbin/ent-adapter v1.0.0
 	github.com/casbin/redis-watcher/v2 v2.5.0
 	github.com/go-sql-driver/mysql v1.9.3
@@ -19,19 +17,19 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/mojocn/base64Captcha v1.3.8
-	github.com/nats-io/nats.go v1.44.0
+	github.com/nats-io/nats.go v1.45.0
 	github.com/nicksnyder/go-i18n/v2 v2.6.0
-	github.com/redis/go-redis/v9 v9.12.1
-	github.com/stretchr/testify v1.10.0
+	github.com/redis/go-redis/v9 v9.14.0
+	github.com/stretchr/testify v1.11.1
 	github.com/zeromicro/go-zero v1.9.0
 	go.mongodb.org/mongo-driver v1.17.4
-	golang.org/x/crypto v0.41.0
-	golang.org/x/net v0.43.0
-	golang.org/x/text v0.28.0
-	google.golang.org/grpc v1.74.2
+	golang.org/x/crypto v0.42.0
+	golang.org/x/net v0.44.0
+	golang.org/x/text v0.29.0
+	google.golang.org/grpc v1.75.1
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/driver/postgres v1.6.0
-	gorm.io/gorm v1.30.1
+	gorm.io/gorm v1.30.5
 )
 
 require (
@@ -114,14 +112,14 @@ require (
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	golang.org/x/image v0.23.0 // indirect
 	golang.org/x/lint v0.0.0-20190930215403-16217165b5de // indirect
-	golang.org/x/mod v0.26.0 // indirect
-	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
-	golang.org/x/term v0.34.0 // indirect
+	golang.org/x/mod v0.27.0 // indirect
+	golang.org/x/sync v0.17.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
+	golang.org/x/term v0.35.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
-	golang.org/x/tools v0.35.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250603155806-513f23925822 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
+	golang.org/x/tools v0.36.0 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

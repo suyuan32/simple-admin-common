@@ -18,20 +18,23 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"github.com/redis/go-redis/v9"
-	"github.com/zeromicro/go-zero/core/logx"
 	"strings"
 	"time"
+
+	"github.com/redis/go-redis/v9"
+	"github.com/zeromicro/go-zero/core/logx"
 )
 
 // A RedisConf is a redis config.
 type RedisConf struct {
-	Host     string `json:",env=REDIS_HOST"`
-	Db       int    `json:",default=0,env=REDIS_DB"`
-	Username string `json:",optional,env=REDIS_USERNAME"`
-	Pass     string `json:",optional,env=REDIS_PASSWORD"`
-	Tls      bool   `json:",optional,env=REDIS_TLS"`
-	Master   string `json:",optional,env=REDIS_MASTER"`
+	Host         string `json:",env=REDIS_HOST"`
+	Db           int    `json:",default=0,env=REDIS_DB"`
+	Username     string `json:",optional,env=REDIS_USERNAME"`
+	Pass         string `json:",optional,env=REDIS_PASSWORD"`
+	Tls          bool   `json:",optional,env=REDIS_TLS"`
+	Master       string `json:",optional,env=REDIS_MASTER"`
+	PoolSize     int    `json:",optional,default=48,env=REDIS_POOL_SIZE"`
+	MaxIdleConns int    `json:",optional,default=12,env=REDIS_MAX_IDLE_CONNS"`
 }
 
 func (r RedisConf) Validate() error {
@@ -48,10 +51,12 @@ func (r RedisConf) NewUniversalRedis() (redis.UniversalClient, error) {
 	}
 
 	opt := &redis.UniversalOptions{
-		Addrs:    strings.Split(r.Host, ","),
-		DB:       r.Db,
-		Password: r.Pass,
-		Username: r.Username,
+		Addrs:        strings.Split(r.Host, ","),
+		DB:           r.Db,
+		Password:     r.Pass,
+		Username:     r.Username,
+		PoolSize:     r.PoolSize,
+		MaxIdleConns: r.MaxIdleConns,
 	}
 
 	if r.Master != "" {

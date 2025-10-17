@@ -44,6 +44,7 @@ type DatabaseConf struct {
 	MysqlConfig  string `json:",optional,env=DATABASE_MYSQL_CONFIG"`
 	PGConfig     string `json:",optional,env=DATABASE_PG_CONFIG"`
 	SqliteConfig string `json:",optional,env=DATABASE_SQLITE_CONFIG"`
+	Debug        bool   `json:",optional,env=DATABASE_DEBUG"`
 }
 
 // NewNoCacheDriver returns an Ent driver without cache.

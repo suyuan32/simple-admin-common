@@ -85,3 +85,10 @@ func AdminCtx(ctx context.Context) context.Context {
 	ctx = metadata.AppendToOutgoingContext(ctx, string(TenantAdmin), "allow")
 	return context.WithValue(ctx, TenantAdmin, "allow")
 }
+
+// WithTenantIdCtx returns a context with a specific tenant ID.
+func WithTenantIdCtx(ctx context.Context, tenantId uint64) context.Context {
+	tenantIdStr := strconv.Itoa(int(tenantId))
+	ctx = metadata.AppendToOutgoingContext(ctx, enum.TenantIdCtxKey, tenantIdStr)
+	return context.WithValue(ctx, enum.TenantIdCtxKey, tenantIdStr)
+}

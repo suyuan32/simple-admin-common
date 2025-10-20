@@ -18,6 +18,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/suyuan32/simple-admin-common/orm/ent/entenum"
 	"github.com/zeromicro/go-zero/rest/enum"
 	"google.golang.org/grpc/metadata"
@@ -110,4 +111,16 @@ func TestGetTenantIDFromCtx(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestWithTenantIdCtx(t *testing.T) {
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.New(map[string]string{
+		enum.TenantIdCtxKey: "10",
+	}))
+
+	ctx = WithTenantIdCtx(ctx, uint64(12))
+
+	tenantId := GetTenantIDFromCtx(ctx)
+
+	assert.Equal(t, uint64(12), tenantId)
 }

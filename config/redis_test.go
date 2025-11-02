@@ -21,7 +21,7 @@ import (
 )
 
 func TestRedis(t *testing.T) {
-	//t.Skip("skip test")
+	t.Skip("skip test")
 
 	// Test must redis
 	conf := &RedisConf{

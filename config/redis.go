@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/redis/go-redis/v9/maintnotifications"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -57,6 +58,9 @@ func (r RedisConf) NewUniversalRedis() (redis.UniversalClient, error) {
 		Username:     r.Username,
 		PoolSize:     r.PoolSize,
 		MaxIdleConns: r.MaxIdleConns,
+		MaintNotificationsConfig: &maintnotifications.Config{
+			Mode: maintnotifications.ModeDisabled,
+		},
 	}
 
 	if r.Master != "" {

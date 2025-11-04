@@ -53,7 +53,7 @@ func (g Conf) NewGORM() (*gorm.DB, error) {
 	switch g.Type {
 	case "mysql":
 		return MysqlClient(g)
-	case "pgsql":
+	case "postgres":
 		return PgSqlClient(g)
 	default:
 		return MysqlClient(g)

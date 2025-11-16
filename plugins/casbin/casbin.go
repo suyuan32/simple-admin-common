@@ -197,3 +197,58 @@ func (l CasbinConf) MustNewCasbinWithOriginalRedisWatcher(dbType, dsn string, c 
 	logx.Must(err)
 	return cbn
 }
+
+// MustNewOriginalRedisWatcherIgnoreSelf returns redis watcher ignoring self which uses original go redis. If there are errors, it will exist.
+// f function will be called if the policies are updated.
+func (l CasbinConf) MustNewOriginalRedisWatcherIgnoreSelf(c config.RedisConf, f func(string2 string)) persist.Watcher {
+	opt := redis2.Options{
+		Network:  "tcp",
+		Username: c.Username,
+		Password: c.Pass,
+		DB:       c.Db,
+		MaintNotificationsConfig: &maintnotifications.Config{
+			Mode: maintnotifications.ModeDisabled,
+		},
+	}
+
+	if c.Tls {
+		opt.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	}
+
+	var w persist.Watcher
+	var err error
+
+	if !strings.Contains(c.Host, ",") && len(c.Host) > 0 {
+		w, err = rediswatcher.NewWatcher(c.Host, rediswatcher.WatcherOptions{
+			Options:    opt,
+			Channel:    fmt.Sprintf("%s-%d", config.RedisCasbinChannel, c.Db),
+			IgnoreSelf: true,
+		})
+		logx.Must(err)
+	} else {
+		w, err = rediswatcher.NewWatcherWithCluster(c.Host, rediswatcher.WatcherOptions{
+			Options:    opt,
+			Channel:    fmt.Sprintf("%s-%d", config.RedisCasbinChannel, c.Db),
+			IgnoreSelf: true,
+		})
+		logx.Must(err)
+	}
+
+	err = w.SetUpdateCallback(f)
+	logx.Must(err)
+
+	return w
+}
+
+// MustNewCasbinWithOriginalRedisWatcherIgnoreSelf returns Casbin Enforcer with original Redis watcher ignoring self.
+func (l CasbinConf) MustNewCasbinWithOriginalRedisWatcherIgnoreSelf(dbType, dsn string, c config.RedisConf) *casbin.Enforcer {
+	cbn := l.MustNewCasbin(dbType, dsn)
+	w := l.MustNewOriginalRedisWatcherIgnoreSelf(c, func(data string) {
+		rediswatcher.DefaultUpdateCallback(cbn)(data)
+	})
+	err := cbn.SetWatcher(w)
+	logx.Must(err)
+	err = cbn.SavePolicy()
+	logx.Must(err)
+	return cbn
+}

@@ -2,12 +2,12 @@ module github.com/suyuan32/simple-admin-common
 
 go 1.25.0
 
-replace github.com/zeromicro/go-zero v1.9.1 => github.com/suyuan32/simple-admin-tools v1.9.1
+replace github.com/zeromicro/go-zero v1.9.2 => github.com/suyuan32/simple-admin-tools v1.9.2
 
 require (
 	entgo.io/ent v0.14.5
 	github.com/apache/rocketmq-client-go/v2 v2.1.2
-	github.com/casbin/casbin/v2 v2.131.0
+	github.com/casbin/casbin/v2 v2.134.0
 	github.com/casbin/ent-adapter v1.1.0
 	github.com/casbin/redis-watcher/v2 v2.5.0
 	github.com/go-sql-driver/mysql v1.9.3
@@ -21,15 +21,15 @@ require (
 	github.com/nicksnyder/go-i18n/v2 v2.6.0
 	github.com/redis/go-redis/v9 v9.16.0
 	github.com/stretchr/testify v1.11.1
-	github.com/zeromicro/go-zero v1.9.1
+	github.com/zeromicro/go-zero v1.9.2
 	go.mongodb.org/mongo-driver v1.17.6
-	golang.org/x/crypto v0.43.0
-	golang.org/x/net v0.46.0
-	golang.org/x/text v0.30.0
+	golang.org/x/crypto v0.44.0
+	golang.org/x/net v0.47.0
+	golang.org/x/text v0.31.0
 	google.golang.org/grpc v1.76.0
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/driver/postgres v1.6.0
-	gorm.io/gorm v1.31.0
+	gorm.io/gorm v1.31.1
 )
 
 require (
@@ -106,18 +106,18 @@ require (
 	go.opentelemetry.io/otel/metric v1.38.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.38.0 // indirect
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
-	go.opentelemetry.io/proto/otlp v1.8.0 // indirect
+	go.opentelemetry.io/proto/otlp v1.9.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
-	golang.org/x/image v0.32.0 // indirect
-	golang.org/x/mod v0.29.0 // indirect
-	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/image v0.33.0 // indirect
+	golang.org/x/mod v0.30.0 // indirect
+	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
-	golang.org/x/tools v0.38.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20251029180050-ab9386a59fda // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20251029180050-ab9386a59fda // indirect
+	golang.org/x/tools v0.39.0 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20251111163417-95abcf5c77ba // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251111163417-95abcf5c77ba // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

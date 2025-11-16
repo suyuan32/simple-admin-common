@@ -35,8 +35,6 @@ github.com/casbin/ent-adapter v1.1.0/go.mod h1:V4eFuva0HzqiQAyByjri1HYT9JlFd0zPU
 github.com/casbin/govaluate v1.3.0/go.mod h1:G/UnbIjZk/0uMNaLwZZmFQrR72tYRZWQkO70si/iR7A=
 github.com/casbin/govaluate v1.10.0 h1:ffGw51/hYH3w3rZcxO/KcaUIDOLP84w7nsidMVgaDG0=
 github.com/casbin/govaluate v1.10.0/go.mod h1:G/UnbIjZk/0uMNaLwZZmFQrR72tYRZWQkO70si/iR7A=
-github.com/casbin/redis-watcher/v2 v2.5.0 h1:a0922GOKYDSSiD7hEQxmLh/psea2eLZtf1V12XzLI5w=
-github.com/casbin/redis-watcher/v2 v2.5.0/go.mod h1:lgtjnQrfbo+xZIwMPtLu9is/XpnCfAT94SLgMzY7HGk=
 github.com/cenkalti/backoff/v5 v5.0.3 h1:ZN+IMa753KfX5hd8vVaMixjnqRZ3y8CuJKRKj1xcsSM=
 github.com/cenkalti/backoff/v5 v5.0.3/go.mod h1:rkhZdG3JZukswDf7f0cwqPNk4K0sa+F97BxZthm/crw=
 github.com/cespare/xxhash/v2 v2.1.2/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=

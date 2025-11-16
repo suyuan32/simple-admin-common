@@ -18,14 +18,16 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log"
+	"strings"
 
+	"github.com/redis/go-redis/v9/maintnotifications"
 	"github.com/suyuan32/simple-admin-common/config"
+	"github.com/suyuan32/simple-admin-common/plugins/casbin/rediswatcher"
 
 	"github.com/casbin/casbin/v2"
 	"github.com/casbin/casbin/v2/model"
 	"github.com/casbin/casbin/v2/persist"
 	entadapter "github.com/casbin/ent-adapter"
-	rediswatcher "github.com/casbin/redis-watcher/v2"
 	redis2 "github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
@@ -94,18 +96,33 @@ func (l CasbinConf) MustNewRedisWatcher(c redis.RedisConf, f func(string2 string
 		Network:  "tcp",
 		Username: c.User,
 		Password: c.Pass,
+		MaintNotificationsConfig: &maintnotifications.Config{
+			Mode: maintnotifications.ModeDisabled,
+		},
 	}
 
 	if c.Tls {
 		opt.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
 	}
 
-	w, err := rediswatcher.NewWatcher(c.Host, rediswatcher.WatcherOptions{
-		Options:    opt,
-		Channel:    config.RedisCasbinChannel,
-		IgnoreSelf: false,
-	})
-	logx.Must(err)
+	var w persist.Watcher
+	var err error
+
+	if !strings.Contains(c.Host, ",") && len(c.Host) > 0 {
+		w, err = rediswatcher.NewWatcher(c.Host, rediswatcher.WatcherOptions{
+			Options:    opt,
+			Channel:    config.RedisCasbinChannel,
+			IgnoreSelf: false,
+		})
+		logx.Must(err)
+	} else {
+		w, err = rediswatcher.NewWatcherWithCluster(c.Host, rediswatcher.WatcherOptions{
+			Options:    opt,
+			Channel:    config.RedisCasbinChannel,
+			IgnoreSelf: false,
+		})
+		logx.Must(err)
+	}
 
 	err = w.SetUpdateCallback(f)
 	logx.Must(err)
@@ -133,18 +150,34 @@ func (l CasbinConf) MustNewOriginalRedisWatcher(c config.RedisConf, f func(strin
 		Network:  "tcp",
 		Username: c.Username,
 		Password: c.Pass,
+		DB:       c.Db,
+		MaintNotificationsConfig: &maintnotifications.Config{
+			Mode: maintnotifications.ModeDisabled,
+		},
 	}
 
 	if c.Tls {
 		opt.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
 	}
 
-	w, err := rediswatcher.NewWatcher(c.Host, rediswatcher.WatcherOptions{
-		Options:    opt,
-		Channel:    fmt.Sprintf("%s-%d", config.RedisCasbinChannel, c.Db),
-		IgnoreSelf: false,
-	})
-	logx.Must(err)
+	var w persist.Watcher
+	var err error
+
+	if !strings.Contains(c.Host, ",") && len(c.Host) > 0 {
+		w, err = rediswatcher.NewWatcher(c.Host, rediswatcher.WatcherOptions{
+			Options:    opt,
+			Channel:    fmt.Sprintf("%s-%d", config.RedisCasbinChannel, c.Db),
+			IgnoreSelf: false,
+		})
+		logx.Must(err)
+	} else {
+		w, err = rediswatcher.NewWatcherWithCluster(c.Host, rediswatcher.WatcherOptions{
+			Options:    opt,
+			Channel:    fmt.Sprintf("%s-%d", config.RedisCasbinChannel, c.Db),
+			IgnoreSelf: false,
+		})
+		logx.Must(err)
+	}
 
 	err = w.SetUpdateCallback(f)
 	logx.Must(err)

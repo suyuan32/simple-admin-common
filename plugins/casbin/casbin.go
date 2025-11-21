@@ -138,7 +138,7 @@ func (l CasbinConf) MustNewCasbinWithRedisWatcher(dbType, dsn string, c redis.Re
 	})
 	err := cbn.SetWatcher(w)
 	logx.Must(err)
-	err = cbn.SavePolicy()
+	err = cbn.LoadPolicy()
 	logx.Must(err)
 	return cbn
 }
@@ -193,7 +193,7 @@ func (l CasbinConf) MustNewCasbinWithOriginalRedisWatcher(dbType, dsn string, c 
 	})
 	err := cbn.SetWatcher(w)
 	logx.Must(err)
-	err = cbn.SavePolicy()
+	err = cbn.LoadPolicy()
 	logx.Must(err)
 	return cbn
 }
@@ -248,7 +248,7 @@ func (l CasbinConf) MustNewCasbinWithOriginalRedisWatcherIgnoreSelf(dbType, dsn 
 	})
 	err := cbn.SetWatcher(w)
 	logx.Must(err)
-	err = cbn.SavePolicy()
+	err = cbn.LoadPolicy()
 	logx.Must(err)
 	return cbn
 }

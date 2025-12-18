@@ -57,6 +57,9 @@ func (c DatabaseConf) NewNoCacheDriver() *entsql.Driver {
 	logx.Must(err)
 
 	db.SetMaxOpenConns(c.MaxOpenConn)
+	db.SetMaxIdleConns(20)
+	db.SetConnMaxIdleTime(5 * time.Minute)
+	db.SetConnMaxLifetime(time.Hour)
 	driver := entsql.OpenDB(c.Type, db)
 
 	return driver

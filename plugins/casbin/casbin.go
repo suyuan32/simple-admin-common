@@ -24,9 +24,9 @@ import (
 	"github.com/suyuan32/simple-admin-common/config"
 	"github.com/suyuan32/simple-admin-common/plugins/casbin/rediswatcher"
 
-	"github.com/casbin/casbin/v2"
-	"github.com/casbin/casbin/v2/model"
-	"github.com/casbin/casbin/v2/persist"
+	"github.com/casbin/casbin/v3"
+	"github.com/casbin/casbin/v3/model"
+	"github.com/casbin/casbin/v3/persist"
 	entadapter "github.com/casbin/ent-adapter"
 	redis2 "github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/logx"

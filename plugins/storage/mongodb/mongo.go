@@ -20,9 +20,9 @@ import (
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
 
 // Conf is the MongoDB configuration structure.
@@ -49,7 +49,7 @@ func (c Conf) MustNewClient() *mongo.Client {
 
 	switch c.AuthMechanism {
 	case "None":
-		client, err = mongo.Connect(ctx, options.Client().ApplyURI(c.GetDSN()))
+		client, err = mongo.Connect(options.Client().ApplyURI(c.GetDSN()))
 	case "SCRAM-SHA-256", "SCRAM-SHA-1", "MONGODB-AWS":
 		credential := options.Credential{
 			AuthMechanism: c.AuthMechanism,
@@ -57,14 +57,14 @@ func (c Conf) MustNewClient() *mongo.Client {
 			Username:      c.Username,
 			Password:      c.Password,
 		}
-		client, err = mongo.Connect(ctx, options.Client().ApplyURI(c.GetDSN()).SetAuth(credential))
+		client, err = mongo.Connect(options.Client().ApplyURI(c.GetDSN()).SetAuth(credential))
 	case "MONGODB-X509":
 		if c.Option == "" {
-			client, err = mongo.Connect(ctx, options.Client().ApplyURI(
+			client, err = mongo.Connect(options.Client().ApplyURI(
 				fmt.Sprintf("%s/?tlsCAFile=%s&tlsCertificateKeyFile=%s", c.GetDSN(),
 					c.TlsCAFile, c.TlsCertificateKeyFile)))
 		} else {
-			client, err = mongo.Connect(ctx, options.Client().ApplyURI(
+			client, err = mongo.Connect(options.Client().ApplyURI(
 				fmt.Sprintf("%s&tlsCAFile=%s&tlsCertificateKeyFile=%s", c.GetDSN(),
 					c.TlsCAFile, c.TlsCertificateKeyFile)))
 		}

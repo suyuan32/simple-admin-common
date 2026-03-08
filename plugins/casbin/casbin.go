@@ -22,12 +22,12 @@ import (
 
 	"github.com/redis/go-redis/v9/maintnotifications"
 	"github.com/suyuan32/simple-admin-common/config"
+	"github.com/suyuan32/simple-admin-common/plugins/casbin/entadapter"
 	"github.com/suyuan32/simple-admin-common/plugins/casbin/rediswatcher"
 
 	"github.com/casbin/casbin/v3"
 	"github.com/casbin/casbin/v3/model"
 	"github.com/casbin/casbin/v3/persist"
-	entadapter "github.com/casbin/ent-adapter"
 	redis2 "github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"

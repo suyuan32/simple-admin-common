@@ -13,6 +13,7 @@ import (
 	"github.com/casbin/casbin/v3/model"
 	"github.com/casbin/casbin/v3/persist"
 	rds "github.com/redis/go-redis/v9"
+	"github.com/zeromicro/go-zero/core/logx"
 )
 
 type Watcher struct {
@@ -35,33 +36,28 @@ func DefaultUpdateCallback(e casbin.IEnforcer) func(string) {
 			return
 		}
 
-		var res bool
 		switch msgStruct.Method {
 		case Update, UpdateForSavePolicy:
 			err = e.LoadPolicy()
-			res = true
 		case UpdateForAddPolicy:
-			res, err = e.SelfAddPolicy(msgStruct.Sec, msgStruct.Ptype, msgStruct.NewRule)
+			_, err = e.SelfAddPolicy(msgStruct.Sec, msgStruct.Ptype, msgStruct.NewRule)
 		case UpdateForAddPolicies:
-			res, err = e.SelfAddPolicies(msgStruct.Sec, msgStruct.Ptype, msgStruct.NewRules)
+			_, err = e.SelfAddPolicies(msgStruct.Sec, msgStruct.Ptype, msgStruct.NewRules)
 		case UpdateForRemovePolicy:
-			res, err = e.SelfRemovePolicy(msgStruct.Sec, msgStruct.Ptype, msgStruct.NewRule)
+			_, err = e.SelfRemovePolicy(msgStruct.Sec, msgStruct.Ptype, msgStruct.NewRule)
 		case UpdateForRemoveFilteredPolicy:
-			res, err = e.SelfRemoveFilteredPolicy(msgStruct.Sec, msgStruct.Ptype, msgStruct.FieldIndex, msgStruct.FieldValues...)
+			_, err = e.SelfRemoveFilteredPolicy(msgStruct.Sec, msgStruct.Ptype, msgStruct.FieldIndex, msgStruct.FieldValues...)
 		case UpdateForRemovePolicies:
-			res, err = e.SelfRemovePolicies(msgStruct.Sec, msgStruct.Ptype, msgStruct.NewRules)
+			_, err = e.SelfRemovePolicies(msgStruct.Sec, msgStruct.Ptype, msgStruct.NewRules)
 		case UpdateForUpdatePolicy:
-			res, err = e.SelfUpdatePolicy(msgStruct.Sec, msgStruct.Ptype, msgStruct.OldRule, msgStruct.NewRule)
+			_, err = e.SelfUpdatePolicy(msgStruct.Sec, msgStruct.Ptype, msgStruct.OldRule, msgStruct.NewRule)
 		case UpdateForUpdatePolicies:
-			res, err = e.SelfUpdatePolicies(msgStruct.Sec, msgStruct.Ptype, msgStruct.OldRules, msgStruct.NewRules)
+			_, err = e.SelfUpdatePolicies(msgStruct.Sec, msgStruct.Ptype, msgStruct.OldRules, msgStruct.NewRules)
 		default:
-			err = errors.New("unknown update type")
+			err = errors.New("unknown update type:" + string(msgStruct.Method))
 		}
 		if err != nil {
-			log.Println(err)
-		}
-		if !res {
-			log.Println("callback update policy failed")
+			logx.Error(err)
 		}
 	}
 }

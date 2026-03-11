@@ -35,7 +35,7 @@ type Conf struct {
 	Password    string `json:",optional"`                               // password
 	MaxIdleConn int    `json:",default=10"`                             // the maximum number of connections in the idle connection pool
 	MaxOpenConn int    `json:",default=100"`                            // the maximum number of open connections to the database
-	LogMode     string `json:",default=error"`                          // open gorm's global logger
+	LogMode     string `json:",default=error"`                          // open Gorm's global logger
 }
 
 // MysqlDSN returns the MySQL DSN link from the configuration.

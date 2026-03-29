@@ -204,13 +204,16 @@ func (a *Adapter) SavePolicy(model model.Model) error {
 // AddPolicy adds a policy rule to the storage.
 // This is part of the Auto-Save feature.
 func (a *Adapter) AddPolicy(sec string, ptype string, rule []string) error {
-	return a.WithTx(func(tx *ent.Tx) error {
+	err := a.WithTx(func(tx *ent.Tx) error {
 		_, err := a.savePolicyLine(tx, ptype, rule).Save(a.ctx)
-		if ent.IsConstraintError(err) {
-			return nil
-		}
 		return err
 	})
+
+	if ent.IsConstraintError(err) {
+		return nil
+	}
+
+	return err
 }
 
 // RemovePolicy removes a policy rule from the storage.
@@ -265,9 +268,15 @@ func (a *Adapter) RemoveFilteredPolicy(sec string, ptype string, fieldIndex int,
 // AddPolicies adds policy rules to the storage.
 // This is part of the Auto-Save feature.
 func (a *Adapter) AddPolicies(sec string, ptype string, rules [][]string) error {
-	return a.WithTx(func(tx *ent.Tx) error {
+	err := a.WithTx(func(tx *ent.Tx) error {
 		return a.createPolicies(tx, ptype, rules)
 	})
+
+	if ent.IsConstraintError(err) {
+		return nil
+	}
+
+	return err
 }
 
 // RemovePolicies removes policy rules from the storage.
@@ -505,9 +514,6 @@ func (a *Adapter) createPolicies(tx *ent.Tx, ptype string, policies [][]string) 
 		lines = append(lines, a.savePolicyLine(tx, ptype, policy))
 	}
 	if _, err := tx.CasbinRule.CreateBulk(lines...).Save(a.ctx); err != nil {
-		if ent.IsConstraintError(err) {
-			return nil
-		}
 		return err
 	}
 	return nil

@@ -206,6 +206,9 @@ func (a *Adapter) SavePolicy(model model.Model) error {
 func (a *Adapter) AddPolicy(sec string, ptype string, rule []string) error {
 	return a.WithTx(func(tx *ent.Tx) error {
 		_, err := a.savePolicyLine(tx, ptype, rule).Save(a.ctx)
+		if ent.IsConstraintError(err) {
+			return nil
+		}
 		return err
 	})
 }
@@ -502,6 +505,9 @@ func (a *Adapter) createPolicies(tx *ent.Tx, ptype string, policies [][]string) 
 		lines = append(lines, a.savePolicyLine(tx, ptype, policy))
 	}
 	if _, err := tx.CasbinRule.CreateBulk(lines...).Save(a.ctx); err != nil {
+		if ent.IsConstraintError(err) {
+			return nil
+		}
 		return err
 	}
 	return nil

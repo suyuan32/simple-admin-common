@@ -56,7 +56,7 @@ func DefaultUpdateCallback(e casbin.IEnforcer) func(string) {
 		default:
 			err = errors.New("unknown update type:" + string(msgStruct.Method))
 		}
-		if err != nil {
+		if err != nil && !strings.Contains(err.Error(), "constraint failed") {
 			logx.Error(err)
 		}
 	}

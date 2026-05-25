@@ -166,6 +166,15 @@ func NewWatcher(addr string, option WatcherOptions) (persist.Watcher, error) {
 func NewWatcherWithCluster(addrs string, option WatcherOptions) (persist.Watcher, error) {
 	addrsStr := strings.Split(addrs, ",")
 	option.ClusterOptions.Addrs = addrsStr
+	if option.ClusterOptions.Username == "" {
+		option.ClusterOptions.Username = option.Options.Username
+	}
+	if option.ClusterOptions.Password == "" {
+		option.ClusterOptions.Password = option.Options.Password
+	}
+	if option.ClusterOptions.TLSConfig == nil {
+		option.ClusterOptions.TLSConfig = option.Options.TLSConfig
+	}
 	initConfig(&option)
 	var watcherSubClient rds.UniversalClient
 	var watcherPubClient rds.UniversalClient
@@ -174,19 +183,11 @@ func NewWatcherWithCluster(addrs string, option WatcherOptions) (persist.Watcher
 	watcherPubClient = option.PubClusterClient
 
 	if option.SubClusterClient == nil {
-		watcherSubClient = rds.NewClusterClient(&rds.ClusterOptions{
-			Addrs:    addrsStr,
-			Username: option.ClusterOptions.Username,
-			Password: option.ClusterOptions.Password,
-		})
+		watcherSubClient = rds.NewClusterClient(&option.ClusterOptions)
 	}
 
 	if option.PubClusterClient == nil {
-		watcherPubClient = rds.NewClusterClient(&rds.ClusterOptions{
-			Addrs:    addrsStr,
-			Username: option.ClusterOptions.Username,
-			Password: option.ClusterOptions.Password,
-		})
+		watcherPubClient = rds.NewClusterClient(&option.ClusterOptions)
 	}
 
 	w := &Watcher{

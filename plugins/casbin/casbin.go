@@ -163,7 +163,7 @@ func (l CasbinConf) MustNewOriginalRedisWatcher(c config.RedisConf, f func(strin
 	var w persist.Watcher
 	var err error
 
-	if !strings.Contains(c.Host, ",") && len(c.Host) > 0 {
+	if c.EffectiveMode() == config.RedisModeSingle && len(c.Host) > 0 {
 		w, err = rediswatcher.NewWatcher(c.Host, rediswatcher.WatcherOptions{
 			Options:    opt,
 			Channel:    fmt.Sprintf("%s-%d", config.RedisCasbinChannel, c.Db),
@@ -218,7 +218,7 @@ func (l CasbinConf) MustNewOriginalRedisWatcherIgnoreSelf(c config.RedisConf, f 
 	var w persist.Watcher
 	var err error
 
-	if !strings.Contains(c.Host, ",") && len(c.Host) > 0 {
+	if c.EffectiveMode() == config.RedisModeSingle && len(c.Host) > 0 {
 		w, err = rediswatcher.NewWatcher(c.Host, rediswatcher.WatcherOptions{
 			Options:    opt,
 			Channel:    fmt.Sprintf("%s-%d", config.RedisCasbinChannel, c.Db),

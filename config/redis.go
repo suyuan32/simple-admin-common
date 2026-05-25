@@ -30,6 +30,7 @@ import (
 type RedisConf struct {
 	Host         string `json:",env=REDIS_HOST"`
 	Db           int    `json:",default=0,env=REDIS_DB"`
+	Mode         string `json:",optional,default=single,env=REDIS_MODE"`
 	Username     string `json:",optional,env=REDIS_USERNAME"`
 	Pass         string `json:",optional,env=REDIS_PASSWORD"`
 	Tls          bool   `json:",optional,env=REDIS_TLS"`
@@ -38,11 +39,61 @@ type RedisConf struct {
 	MaxIdleConns int    `json:",optional,default=12,env=REDIS_MAX_IDLE_CONNS"`
 }
 
+const (
+	RedisModeSingle  = "single"
+	RedisModeCluster = "cluster"
+)
+
 func (r RedisConf) Validate() error {
 	if len(r.Host) == 0 {
 		return errors.New("host cannot be empty")
 	}
 	return nil
+}
+
+// EffectiveMode returns the redis mode resolved by config.
+// Rule priority:
+// 1) If Host contains ',', force cluster mode.
+// 2) If Mode is "cluster", use cluster mode.
+// 3) Default to single mode.
+func (r RedisConf) EffectiveMode() string {
+	if strings.Contains(r.Host, ",") {
+		return RedisModeCluster
+	}
+
+	if strings.EqualFold(strings.TrimSpace(r.Mode), RedisModeCluster) {
+		return RedisModeCluster
+	}
+
+	return RedisModeSingle
+}
+
+func (r RedisConf) IsClusterMode() bool {
+	return r.EffectiveMode() == RedisModeCluster
+}
+
+func (r RedisConf) parsedAddrs() []string {
+	parts := strings.Split(r.Host, ",")
+	addrs := make([]string, 0, len(parts))
+	seen := make(map[string]struct{}, len(parts))
+
+	for _, part := range parts {
+		addr := strings.TrimSpace(part)
+		if addr == "" {
+			continue
+		}
+		if _, ok := seen[addr]; ok {
+			continue
+		}
+		seen[addr] = struct{}{}
+		addrs = append(addrs, addr)
+	}
+
+	if len(addrs) == 0 {
+		return []string{strings.TrimSpace(r.Host)}
+	}
+
+	return addrs
 }
 
 func (r RedisConf) NewUniversalRedis() (redis.UniversalClient, error) {
@@ -52,12 +103,13 @@ func (r RedisConf) NewUniversalRedis() (redis.UniversalClient, error) {
 	}
 
 	opt := &redis.UniversalOptions{
-		Addrs:        strings.Split(r.Host, ","),
-		DB:           r.Db,
-		Password:     r.Pass,
-		Username:     r.Username,
-		PoolSize:     r.PoolSize,
-		MaxIdleConns: r.MaxIdleConns,
+		Addrs:         r.parsedAddrs(),
+		IsClusterMode: r.IsClusterMode(),
+		DB:            r.Db,
+		Password:      r.Pass,
+		Username:      r.Username,
+		PoolSize:      r.PoolSize,
+		MaxIdleConns:  r.MaxIdleConns,
 		MaintNotificationsConfig: &maintnotifications.Config{
 			Mode: maintnotifications.ModeDisabled,
 		},

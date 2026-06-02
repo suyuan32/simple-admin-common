@@ -2,7 +2,7 @@ module github.com/suyuan32/simple-admin-common
 
 go 1.26.0
 
-replace github.com/zeromicro/go-zero v1.10.2 => github.com/suyuan32/simple-admin-tools v1.10.2
+replace github.com/zeromicro/go-zero v1.10.2 => github.com/suyuan32/simple-admin-tools v1.10.3
 
 require (
 	entgo.io/ent v0.14.6

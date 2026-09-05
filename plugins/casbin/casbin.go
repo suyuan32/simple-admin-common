@@ -71,8 +71,8 @@ func (l CasbinConf) NewCasbin(dbType, dsn string) (*casbin.Enforcer, error) {
 	enforcer, err := casbin.NewEnforcer(m, adapter)
 	logx.Must(err)
 
-	err = enforcer.LoadPolicy()
-	logx.Must(err)
+	// casbin.NewEnforcer loads the policy automatically when the adapter is not
+	// filtered. Keep this as the single policy load owned by the constructor.
 
 	return enforcer, nil
 }
@@ -138,8 +138,6 @@ func (l CasbinConf) MustNewCasbinWithRedisWatcher(dbType, dsn string, c redis.Re
 	})
 	err := cbn.SetWatcher(w)
 	logx.Must(err)
-	err = cbn.LoadPolicy()
-	logx.Must(err)
 	return cbn
 }
 
@@ -193,8 +191,6 @@ func (l CasbinConf) MustNewCasbinWithOriginalRedisWatcher(dbType, dsn string, c 
 	})
 	err := cbn.SetWatcher(w)
 	logx.Must(err)
-	err = cbn.LoadPolicy()
-	logx.Must(err)
 	return cbn
 }
 
@@ -247,8 +243,6 @@ func (l CasbinConf) MustNewCasbinWithOriginalRedisWatcherIgnoreSelf(dbType, dsn 
 		rediswatcher.DefaultUpdateCallback(cbn)(data)
 	})
 	err := cbn.SetWatcher(w)
-	logx.Must(err)
-	err = cbn.LoadPolicy()
 	logx.Must(err)
 	return cbn
 }

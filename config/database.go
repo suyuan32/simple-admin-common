@@ -25,8 +25,8 @@ import (
 	entsql "entgo.io/ent/dialect/sql"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/zeromicro/go-zero/core/logx"
+	_ "modernc.org/sqlite"
 )
 
 // DatabaseConf stores database configurations.
@@ -47,19 +47,45 @@ type DatabaseConf struct {
 	Debug        bool   `json:",optional,env=DATABASE_DEBUG"`
 }
 
-// NewNoCacheDriver returns an Ent driver without cache.
-func (c DatabaseConf) NewNoCacheDriver() *entsql.Driver {
-	db, err := sql.Open(c.Type, c.GetDSN())
-	logx.Must(err)
+// NewDB opens a database connection pool with the shared Simple Admin settings.
+func (c DatabaseConf) NewDB() (*sql.DB, error) {
+	db, err := sql.Open(c.sqlDriverName(), c.GetDSN())
+	if err != nil {
+		return nil, err
+	}
 
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	err = db.PingContext(ctx)
-	logx.Must(err)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err = db.PingContext(ctx); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
 
 	db.SetMaxOpenConns(c.MaxOpenConn)
 	db.SetMaxIdleConns(20)
 	db.SetConnMaxIdleTime(5 * time.Minute)
 	db.SetConnMaxLifetime(time.Hour)
+
+	return db, nil
+}
+
+// sqlDriverName maps Simple Admin's stable configuration value to the driver
+// registered by the selected implementation. Ent still uses the sqlite3
+// dialect name, so Type remains compatible with existing YAML files.
+func (c DatabaseConf) sqlDriverName() string {
+	if c.Type == "sqlite3" {
+		return "sqlite"
+	}
+
+	return c.Type
+}
+
+// NewNoCacheDriver returns an Ent driver without cache.
+func (c DatabaseConf) NewNoCacheDriver() *entsql.Driver {
+	db, err := c.NewDB()
+	logx.Must(err)
+
 	driver := entsql.OpenDB(c.Type, db)
 
 	return driver

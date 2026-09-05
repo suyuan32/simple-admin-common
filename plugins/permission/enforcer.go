@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package permission provides on-demand API permission checks for the Simple
-// Admin Casbin data model. It intentionally queries casbin_rules instead of
-// loading all policies into process memory.
+// Package permission provides on-demand API permission checks for Simple
+// Admin. It stores policies in sys_permissions instead of loading them into
+// process memory.
 package permission
 
 import (
@@ -29,23 +29,26 @@ import (
 )
 
 const (
-	policyType = "p"
-	tableName  = "casbin_rules"
+	tableName        = "sys_permissions"
+	legacyTableName  = "casbin_rules"
+	legacyPolicyType = "p"
 )
 
 var keyMatch2Parameter = regexp.MustCompile(`:[^/]+`)
 
-// Policy is the API permission row stored in casbin_rules.
-// It maps to Casbin's p = sub, obj, act definition.
+// Policy is the API permission row stored in sys_permissions. Its field mapping
+// deliberately preserves the legacy layout: Subject -> v0, Object -> v1,
+// Action -> v2 and Domain -> v3. v4 and v5 remain reserved for future use.
 type Policy struct {
 	Subject string
 	Object  string
 	Action  string
+	Domain  string
 }
 
-// Enforcer evaluates Simple Admin's p = sub, obj, act policy directly from
-// the database. Unlike casbin.Enforcer, it does not keep all policies in
-// memory and it does not subscribe to policy reload notifications.
+// Enforcer evaluates Simple Admin's API permission policy directly from the
+// database. It does not keep all policies in memory and does not subscribe to
+// policy reload notifications.
 //
 // The supported matcher is the project's current matcher:
 // r.sub == p.sub && keyMatch2(r.obj, p.obj) && r.act == p.act.
@@ -55,21 +58,17 @@ type Enforcer struct {
 }
 
 // New creates an on-demand permission enforcer from an existing database pool.
-// The caller owns db and is responsible for closing it.
+// The caller owns db and is responsible for closing it. Call InitDatabase from
+// the service's database initialization flow before serving protected routes.
 func New(db *sql.DB, dialect string) (*Enforcer, error) {
 	if db == nil {
 		return nil, errors.New("permission database cannot be nil")
 	}
 
-	enforcer := &Enforcer{
+	return &Enforcer{
 		db:      db,
 		dialect: strings.ToLower(dialect),
-	}
-	if err := enforcer.ensureSchema(context.Background()); err != nil {
-		return nil, err
-	}
-
-	return enforcer, nil
+	}, nil
 }
 
 // NewWithDatabaseConf opens a dedicated database pool for permission checks.
@@ -105,31 +104,96 @@ func (e *Enforcer) Close() error {
 	return e.db.Close()
 }
 
+// InitDatabase creates and indexes the permission table. It is idempotent and
+// deliberately separate from New so permission storage is maintained by the
+// application's database initialization flow rather than by an ORM adapter.
+func (e *Enforcer) InitDatabase(ctx context.Context) error {
+	return e.ensureSchema(ctx)
+}
+
+// MigrateFromCasbinRules copies legacy p policies from casbin_rules into an
+// empty sys_permissions table. It is safe to call from Core's initialization
+// flow: after the new table has data, later calls are deliberate no-ops so old
+// rules cannot restore permissions that were revoked in sys_permissions.
+//
+// The legacy mapping is v0..v5 -> v0..v5. Casbin g rules and all other ptype
+// values are ignored because Simple Admin's API authorization only uses p.
+func (e *Enforcer) MigrateFromCasbinRules(ctx context.Context) (int64, error) {
+	if err := e.InitDatabase(ctx); err != nil {
+		return 0, err
+	}
+
+	var targetCount int64
+	query := fmt.Sprintf("SELECT COUNT(1) FROM %s", tableName)
+	if err := e.db.QueryRowContext(ctx, query).Scan(&targetCount); err != nil {
+		return 0, err
+	}
+	if targetCount > 0 {
+		return 0, nil
+	}
+
+	exists, err := e.tableExists(ctx, legacyTableName)
+	if err != nil || !exists {
+		return 0, err
+	}
+
+	tx, err := e.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	query = fmt.Sprintf(
+		"INSERT INTO %s (v0, v1, v2, v3, v4, v5) "+
+			"SELECT v0, v1, v2, v3, v4, v5 FROM %s WHERE ptype = %s",
+		tableName, legacyTableName, e.placeholder(1),
+	)
+	result, err := tx.ExecContext(ctx, query, legacyPolicyType)
+	if err != nil {
+		return 0, err
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+
+	return result.RowsAffected()
+}
+
 // Check returns whether any subject has permission to access object with action.
-// Static policies use the existing unique index (ptype, v0, v1, v2, ...).
+// Static policies use the unique index (v0, v1, v2, ...).
 // Dynamic keyMatch2 policies are only queried when the exact lookup misses.
-func (e *Enforcer) Check(ctx context.Context, subjects []string, object, action string) (bool, error) {
+// The optional domain is stored in v3. Omitting it preserves non-tenant
+// behavior, while tenant middleware must pass its trusted tenant ID.
+func (e *Enforcer) Check(ctx context.Context, subjects []string, object, action string, domains ...string) (bool, error) {
+	domain, err := resolveDomain(domains)
+	if err != nil {
+		return false, err
+	}
+
 	subjects = uniqueNonEmpty(subjects)
 	if len(subjects) == 0 {
 		return false, nil
 	}
 
-	matched, err := e.hasExactPolicy(ctx, subjects, object, action)
+	matched, err := e.hasExactPolicy(ctx, subjects, object, action, domain)
 	if err != nil || matched {
 		return matched, err
 	}
 
-	return e.hasMatchedPatternPolicy(ctx, subjects, object, action)
+	return e.hasMatchedPatternPolicy(ctx, subjects, object, action, domain)
 }
 
 // BatchEnforce keeps the familiar Casbin method shape for gradual migrations.
-// It accepts [subject, object, action] requests and evaluates them on demand.
+// It accepts [subject, object, action] and [subject, object, action, domain]
+// requests and evaluates them on demand.
 // New middleware should prefer Check so multiple roles are queried together.
 func (e *Enforcer) BatchEnforce(requests [][]any) ([]bool, error) {
 	results := make([]bool, len(requests))
 	for i, request := range requests {
-		if len(request) != 3 {
-			return nil, fmt.Errorf("permission request %d must contain subject, object and action", i)
+		if len(request) != 3 && len(request) != 4 {
+			return nil, fmt.Errorf("permission request %d must contain subject, object, action and optional domain", i)
 		}
 
 		subject, ok := request[0].(string)
@@ -145,7 +209,15 @@ func (e *Enforcer) BatchEnforce(requests [][]any) ([]bool, error) {
 			return nil, fmt.Errorf("permission request %d action must be a string", i)
 		}
 
-		allowed, err := e.Check(context.Background(), []string{subject}, object, action)
+		var domain string
+		if len(request) == 4 {
+			domain, ok = request[3].(string)
+			if !ok {
+				return nil, fmt.Errorf("permission request %d domain must be a string", i)
+			}
+		}
+
+		allowed, err := e.Check(context.Background(), []string{subject}, object, action, domain)
 		if err != nil {
 			return nil, err
 		}
@@ -156,12 +228,19 @@ func (e *Enforcer) BatchEnforce(requests [][]any) ([]bool, error) {
 }
 
 // ListPolicies returns a role's API policies without loading the full model.
-func (e *Enforcer) ListPolicies(ctx context.Context, subject string) ([]Policy, error) {
+// The optional domain scopes the query to v3; its default is the non-tenant
+// empty domain.
+func (e *Enforcer) ListPolicies(ctx context.Context, subject string, domains ...string) ([]Policy, error) {
+	domain, err := resolveDomain(domains)
+	if err != nil {
+		return nil, err
+	}
+
 	query := fmt.Sprintf(
-		"SELECT v0, v1, v2 FROM %s WHERE ptype = %s AND v0 = %s ORDER BY id",
+		"SELECT v0, v1, v2, v3 FROM %s WHERE v0 = %s AND v3 = %s ORDER BY id",
 		tableName, e.placeholder(1), e.placeholder(2),
 	)
-	rows, err := e.db.QueryContext(ctx, query, policyType, subject)
+	rows, err := e.db.QueryContext(ctx, query, subject, domain)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +249,7 @@ func (e *Enforcer) ListPolicies(ctx context.Context, subject string) ([]Policy, 
 	policies := make([]Policy, 0)
 	for rows.Next() {
 		var policy Policy
-		if err = rows.Scan(&policy.Subject, &policy.Object, &policy.Action); err != nil {
+		if err = rows.Scan(&policy.Subject, &policy.Object, &policy.Action, &policy.Domain); err != nil {
 			return nil, err
 		}
 		policies = append(policies, policy)
@@ -179,13 +258,18 @@ func (e *Enforcer) ListPolicies(ctx context.Context, subject string) ([]Policy, 
 	return policies, rows.Err()
 }
 
-// ReplacePolicies atomically replaces one subject's API policies.
-func (e *Enforcer) ReplacePolicies(ctx context.Context, subject string, policies []Policy) error {
+// ReplacePolicies atomically replaces one subject's API policies in one domain.
+// Omitting the optional domain preserves the non-tenant v3 = ” behavior.
+func (e *Enforcer) ReplacePolicies(ctx context.Context, subject string, policies []Policy, domains ...string) error {
 	if subject == "" {
 		return errors.New("permission subject cannot be empty")
 	}
+	domain, err := resolveDomain(domains)
+	if err != nil {
+		return err
+	}
 
-	policies = normalizePolicies(subject, policies)
+	policies = normalizePolicies(subject, domain, policies)
 	tx, err := e.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -195,22 +279,22 @@ func (e *Enforcer) ReplacePolicies(ctx context.Context, subject string, policies
 	}()
 
 	deleteQuery := fmt.Sprintf(
-		"DELETE FROM %s WHERE ptype = %s AND v0 = %s",
+		"DELETE FROM %s WHERE v0 = %s AND v3 = %s",
 		tableName, e.placeholder(1), e.placeholder(2),
 	)
-	if _, err = tx.ExecContext(ctx, deleteQuery, policyType, subject); err != nil {
+	if _, err = tx.ExecContext(ctx, deleteQuery, subject, domain); err != nil {
 		return err
 	}
 
 	insertQuery := fmt.Sprintf(
-		"INSERT INTO %s (ptype, v0, v1, v2, v3, v4, v5) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+		"INSERT INTO %s (v0, v1, v2, v3, v4, v5) VALUES (%s, %s, %s, %s, %s, %s)",
 		tableName,
 		e.placeholder(1), e.placeholder(2), e.placeholder(3), e.placeholder(4),
-		e.placeholder(5), e.placeholder(6), e.placeholder(7),
+		e.placeholder(5), e.placeholder(6),
 	)
 	for _, policy := range policies {
 		if _, err = tx.ExecContext(ctx, insertQuery,
-			policyType, subject, policy.Object, policy.Action, "", "", ""); err != nil {
+			subject, policy.Object, policy.Action, policy.Domain, "", ""); err != nil {
 			return err
 		}
 	}
@@ -218,14 +302,19 @@ func (e *Enforcer) ReplacePolicies(ctx context.Context, subject string, policies
 	return tx.Commit()
 }
 
-// RemovePolicies removes one subject's API policies. It returns whether rows
-// were removed.
-func (e *Enforcer) RemovePolicies(ctx context.Context, subject string) (bool, error) {
+// RemovePolicies removes one subject's API policies in one domain. It returns
+// whether rows were removed.
+func (e *Enforcer) RemovePolicies(ctx context.Context, subject string, domains ...string) (bool, error) {
+	domain, err := resolveDomain(domains)
+	if err != nil {
+		return false, err
+	}
+
 	query := fmt.Sprintf(
-		"DELETE FROM %s WHERE ptype = %s AND v0 = %s",
+		"DELETE FROM %s WHERE v0 = %s AND v3 = %s",
 		tableName, e.placeholder(1), e.placeholder(2),
 	)
-	result, err := e.db.ExecContext(ctx, query, policyType, subject)
+	result, err := e.db.ExecContext(ctx, query, subject, domain)
 	if err != nil {
 		return false, err
 	}
@@ -237,33 +326,142 @@ func (e *Enforcer) RemovePolicies(ctx context.Context, subject string) (bool, er
 	return count > 0, nil
 }
 
-// RenameSubject keeps policies consistent after a role code changes.
-func (e *Enforcer) RenameSubject(ctx context.Context, oldSubject, newSubject string) error {
+// RenameSubject keeps policies consistent after a role code changes. The
+// optional domain prevents identical role codes in other tenants being renamed.
+func (e *Enforcer) RenameSubject(ctx context.Context, oldSubject, newSubject string, domains ...string) error {
 	if oldSubject == "" || newSubject == "" {
 		return errors.New("permission subject cannot be empty")
 	}
 	if oldSubject == newSubject {
 		return nil
 	}
+	domain, err := resolveDomain(domains)
+	if err != nil {
+		return err
+	}
 
 	query := fmt.Sprintf(
-		"UPDATE %s SET v0 = %s WHERE ptype = %s AND v0 = %s",
+		"UPDATE %s SET v0 = %s WHERE v0 = %s AND v3 = %s",
 		tableName, e.placeholder(1), e.placeholder(2), e.placeholder(3),
 	)
-	_, err := e.db.ExecContext(ctx, query, newSubject, policyType, oldSubject)
+	_, err = e.db.ExecContext(ctx, query, newSubject, oldSubject, domain)
 	return err
 }
 
-func (e *Enforcer) hasExactPolicy(ctx context.Context, subjects []string, object, action string) (bool, error) {
-	args := make([]any, 0, len(subjects)+3)
-	args = append(args, policyType)
-	args = append(args, stringsToAny(subjects)...)
-	args = append(args, object, action)
+// AddPolicies adds only policies that do not already exist. Each policy must
+// include Subject; Domain is optional for the non-tenant model.
+func (e *Enforcer) AddPolicies(ctx context.Context, policies []Policy) (bool, error) {
+	policies = normalizePolicyRows(policies)
+	if len(policies) == 0 {
+		return false, nil
+	}
+
+	tx, err := e.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, err
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	insertQuery := fmt.Sprintf(
+		"INSERT INTO %s (v0, v1, v2, v3, v4, v5) "+
+			"SELECT %s, %s, %s, %s, %s, %s WHERE NOT EXISTS "+
+			"(SELECT 1 FROM %s WHERE v0 = %s AND v1 = %s AND v2 = %s AND v3 = %s AND v4 = %s AND v5 = %s)",
+		tableName,
+		e.placeholder(1), e.placeholder(2), e.placeholder(3), e.placeholder(4), e.placeholder(5), e.placeholder(6),
+		tableName,
+		e.placeholder(7), e.placeholder(8), e.placeholder(9), e.placeholder(10), e.placeholder(11), e.placeholder(12),
+	)
+
+	added := false
+	for _, policy := range policies {
+		result, err := tx.ExecContext(ctx, insertQuery,
+			policy.Subject, policy.Object, policy.Action, policy.Domain, "", "",
+			policy.Subject, policy.Object, policy.Action, policy.Domain, "", "")
+		if err != nil {
+			return false, err
+		}
+		if affected, err := result.RowsAffected(); err == nil && affected > 0 {
+			added = true
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return false, err
+	}
+	return added, nil
+}
+
+// RemoveDomainPolicies removes all API permissions that belong to one domain.
+// It is used when a tenant is disabled, reauthorized, or deleted.
+func (e *Enforcer) RemoveDomainPolicies(ctx context.Context, domain string) (bool, error) {
+	query := fmt.Sprintf(
+		"DELETE FROM %s WHERE v3 = %s",
+		tableName, e.placeholder(1),
+	)
+	result, err := e.db.ExecContext(ctx, query, domain)
+	if err != nil {
+		return false, err
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// RemovePoliciesByResources removes permissions for the supplied API resources
+// in only the specified domains, without enumerating all policies in memory.
+func (e *Enforcer) RemovePoliciesByResources(ctx context.Context, domains []string, resources []Policy) (bool, error) {
+	domains = uniqueNonEmpty(domains)
+	resources = normalizeResources(resources)
+	if len(domains) == 0 || len(resources) == 0 {
+		return false, nil
+	}
+
+	tx, err := e.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, err
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	query := fmt.Sprintf(
-		"SELECT 1 FROM %s WHERE ptype = %s AND v0 IN (%s) AND v1 = %s AND v2 = %s LIMIT 1",
-		tableName, e.placeholder(1), e.placeholders(2, len(subjects)),
-		e.placeholder(len(subjects)+2), e.placeholder(len(subjects)+3),
+		"DELETE FROM %s WHERE v3 IN (%s) AND v1 = %s AND v2 = %s",
+		tableName, e.placeholders(1, len(domains)),
+		e.placeholder(len(domains)+1), e.placeholder(len(domains)+2),
+	)
+	removed := false
+	for _, resource := range resources {
+		args := make([]any, 0, len(domains)+2)
+		args = append(args, stringsToAny(domains)...)
+		args = append(args, resource.Object, resource.Action)
+		result, err := tx.ExecContext(ctx, query, args...)
+		if err != nil {
+			return false, err
+		}
+		if affected, err := result.RowsAffected(); err == nil && affected > 0 {
+			removed = true
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return false, err
+	}
+	return removed, nil
+}
+
+func (e *Enforcer) hasExactPolicy(ctx context.Context, subjects []string, object, action, domain string) (bool, error) {
+	args := make([]any, 0, len(subjects)+3)
+	args = append(args, stringsToAny(subjects)...)
+	args = append(args, object, action, domain)
+
+	query := fmt.Sprintf(
+		"SELECT 1 FROM %s WHERE v0 IN (%s) AND v1 = %s AND v2 = %s AND v3 = %s LIMIT 1",
+		tableName, e.placeholders(1, len(subjects)),
+		e.placeholder(len(subjects)+1), e.placeholder(len(subjects)+2), e.placeholder(len(subjects)+3),
 	)
 	var one int
 	err := e.db.QueryRowContext(ctx, query, args...).Scan(&one)
@@ -277,16 +475,15 @@ func (e *Enforcer) hasExactPolicy(ctx context.Context, subjects []string, object
 	return true, nil
 }
 
-func (e *Enforcer) hasMatchedPatternPolicy(ctx context.Context, subjects []string, object, action string) (bool, error) {
+func (e *Enforcer) hasMatchedPatternPolicy(ctx context.Context, subjects []string, object, action, domain string) (bool, error) {
 	args := make([]any, 0, len(subjects)+4)
-	args = append(args, policyType)
 	args = append(args, stringsToAny(subjects)...)
-	args = append(args, action, "%*%", "%:%")
+	args = append(args, action, domain, "%*%", "%:%")
 
 	query := fmt.Sprintf(
-		"SELECT v1 FROM %s WHERE ptype = %s AND v0 IN (%s) AND v2 = %s AND (v1 LIKE %s OR v1 LIKE %s)",
-		tableName, e.placeholder(1), e.placeholders(2, len(subjects)),
-		e.placeholder(len(subjects)+2), e.placeholder(len(subjects)+3), e.placeholder(len(subjects)+4),
+		"SELECT v1 FROM %s WHERE v0 IN (%s) AND v2 = %s AND v3 = %s AND (v1 LIKE %s OR v1 LIKE %s)",
+		tableName, e.placeholders(1, len(subjects)),
+		e.placeholder(len(subjects)+1), e.placeholder(len(subjects)+2), e.placeholder(len(subjects)+3), e.placeholder(len(subjects)+4),
 	)
 	rows, err := e.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -328,48 +525,98 @@ func (e *Enforcer) ensureSchema(ctx context.Context) error {
 	var createTable string
 	switch e.dialect {
 	case "mysql":
-		createTable = `CREATE TABLE IF NOT EXISTS casbin_rules (
+		createTable = `CREATE TABLE IF NOT EXISTS sys_permissions (
 			id BIGINT NOT NULL AUTO_INCREMENT,
-			ptype VARCHAR(24) NOT NULL DEFAULT '',
 			v0 VARCHAR(24) NOT NULL DEFAULT '',
-			v1 VARCHAR(255) NOT NULL DEFAULT '',
+			v1 VARCHAR(512) NOT NULL DEFAULT '',
 			v2 VARCHAR(24) NOT NULL DEFAULT '',
 			v3 VARCHAR(32) NOT NULL DEFAULT '',
 			v4 VARCHAR(12) NOT NULL DEFAULT '',
 			v5 VARCHAR(12) NOT NULL DEFAULT '',
 			PRIMARY KEY (id),
-			UNIQUE KEY casbinrule_ptype_v0_v1_v2_v3_v4_v5 (ptype, v0, v1, v2, v3, v4, v5)
+			UNIQUE KEY sys_permissions_v0_v1_v2_v3_v4_v5 (v0, v1, v2, v3, v4, v5),
+			KEY sys_permissions_v3_v0_v2 (v3, v0, v2),
+			KEY sys_permissions_v3_v1_v2 (v3, v1, v2)
 		)`
 	case "postgres":
-		createTable = `CREATE TABLE IF NOT EXISTS casbin_rules (
+		createTable = `CREATE TABLE IF NOT EXISTS sys_permissions (
 			id BIGSERIAL PRIMARY KEY,
-			ptype VARCHAR(24) NOT NULL DEFAULT '',
 			v0 VARCHAR(24) NOT NULL DEFAULT '',
-			v1 VARCHAR(255) NOT NULL DEFAULT '',
+			v1 VARCHAR(512) NOT NULL DEFAULT '',
 			v2 VARCHAR(24) NOT NULL DEFAULT '',
 			v3 VARCHAR(32) NOT NULL DEFAULT '',
 			v4 VARCHAR(12) NOT NULL DEFAULT '',
 			v5 VARCHAR(12) NOT NULL DEFAULT '',
-			CONSTRAINT casbinrule_ptype_v0_v1_v2_v3_v4_v5 UNIQUE (ptype, v0, v1, v2, v3, v4, v5)
+			CONSTRAINT sys_permissions_v0_v1_v2_v3_v4_v5 UNIQUE (v0, v1, v2, v3, v4, v5)
 		)`
-	case "sqlite3":
-		createTable = `CREATE TABLE IF NOT EXISTS casbin_rules (
+	case "sqlite", "sqlite3":
+		createTable = `CREATE TABLE IF NOT EXISTS sys_permissions (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			ptype TEXT NOT NULL DEFAULT '',
-			v0 TEXT NOT NULL DEFAULT '',
-			v1 TEXT NOT NULL DEFAULT '',
-			v2 TEXT NOT NULL DEFAULT '',
-			v3 TEXT NOT NULL DEFAULT '',
-			v4 TEXT NOT NULL DEFAULT '',
-			v5 TEXT NOT NULL DEFAULT '',
-			UNIQUE (ptype, v0, v1, v2, v3, v4, v5)
+			v0 TEXT NOT NULL DEFAULT '' CHECK (length(v0) <= 24),
+			v1 TEXT NOT NULL DEFAULT '' CHECK (length(v1) <= 512),
+			v2 TEXT NOT NULL DEFAULT '' CHECK (length(v2) <= 24),
+			v3 TEXT NOT NULL DEFAULT '' CHECK (length(v3) <= 32),
+			v4 TEXT NOT NULL DEFAULT '' CHECK (length(v4) <= 12),
+			v5 TEXT NOT NULL DEFAULT '' CHECK (length(v5) <= 12),
+			CONSTRAINT sys_permissions_v0_v1_v2_v3_v4_v5 UNIQUE (v0, v1, v2, v3, v4, v5)
 		)`
 	default:
 		return fmt.Errorf("unsupported permission database type %q", e.dialect)
 	}
 
-	_, err := e.db.ExecContext(ctx, createTable)
+	if _, err := e.db.ExecContext(ctx, createTable); err != nil {
+		return err
+	}
+
+	if err := e.ensureLookupIndex(ctx, "sys_permissions_v3_v0_v2", "v3, v0, v2"); err != nil {
+		return err
+	}
+	return e.ensureLookupIndex(ctx, "sys_permissions_v3_v1_v2", "v3, v1, v2")
+}
+
+func (e *Enforcer) ensureLookupIndex(ctx context.Context, indexName, columns string) error {
+	var query string
+	switch e.dialect {
+	case "mysql":
+		var exists int
+		query = "SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ?"
+		if err := e.db.QueryRowContext(ctx, query, tableName, indexName).Scan(&exists); err != nil {
+			return err
+		}
+		if exists > 0 {
+			return nil
+		}
+		query = fmt.Sprintf("CREATE INDEX %s ON %s (%s)", indexName, tableName, columns)
+	case "postgres":
+		query = fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s ON %s (%s)", indexName, tableName, columns)
+	case "sqlite", "sqlite3":
+		query = fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s ON %s (%s)", indexName, tableName, columns)
+	default:
+		return fmt.Errorf("unsupported permission database type %q", e.dialect)
+	}
+
+	_, err := e.db.ExecContext(ctx, query)
 	return err
+}
+
+func (e *Enforcer) tableExists(ctx context.Context, name string) (bool, error) {
+	var query string
+	switch e.dialect {
+	case "mysql":
+		query = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?"
+	case "postgres":
+		query = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = $1"
+	case "sqlite", "sqlite3":
+		query = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?"
+	default:
+		return false, fmt.Errorf("unsupported permission database type %q", e.dialect)
+	}
+
+	var count int
+	if err := e.db.QueryRowContext(ctx, query, name).Scan(&count); err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
 
 func uniqueNonEmpty(values []string) []string {
@@ -389,7 +636,7 @@ func uniqueNonEmpty(values []string) []string {
 	return result
 }
 
-func normalizePolicies(subject string, policies []Policy) []Policy {
+func normalizePolicies(subject, domain string, policies []Policy) []Policy {
 	seen := make(map[string]struct{}, len(policies))
 	result := make([]Policy, 0, len(policies))
 	for _, policy := range policies {
@@ -397,7 +644,8 @@ func normalizePolicies(subject string, policies []Policy) []Policy {
 			continue
 		}
 		policy.Subject = subject
-		key := policy.Object + "\x00" + policy.Action
+		policy.Domain = domain
+		key := policy.Object + "\x00" + policy.Action + "\x00" + policy.Domain
 		if _, ok := seen[key]; ok {
 			continue
 		}
@@ -406,6 +654,50 @@ func normalizePolicies(subject string, policies []Policy) []Policy {
 	}
 
 	return result
+}
+
+func normalizePolicyRows(policies []Policy) []Policy {
+	seen := make(map[string]struct{}, len(policies))
+	result := make([]Policy, 0, len(policies))
+	for _, policy := range policies {
+		if policy.Subject == "" || policy.Object == "" || policy.Action == "" {
+			continue
+		}
+		key := policy.Subject + "\x00" + policy.Object + "\x00" + policy.Action + "\x00" + policy.Domain
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		result = append(result, policy)
+	}
+	return result
+}
+
+func normalizeResources(resources []Policy) []Policy {
+	seen := make(map[string]struct{}, len(resources))
+	result := make([]Policy, 0, len(resources))
+	for _, resource := range resources {
+		if resource.Object == "" || resource.Action == "" {
+			continue
+		}
+		key := resource.Object + "\x00" + resource.Action
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		result = append(result, Policy{Object: resource.Object, Action: resource.Action})
+	}
+	return result
+}
+
+func resolveDomain(domains []string) (string, error) {
+	if len(domains) == 0 {
+		return "", nil
+	}
+	if len(domains) != 1 {
+		return "", errors.New("permission accepts at most one domain")
+	}
+	return domains[0], nil
 }
 
 func stringsToAny(values []string) []any {

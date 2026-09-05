@@ -29,7 +29,7 @@ func TestKeyMatch2Compatibility(t *testing.T) {
 }
 
 func TestPolicyNormalization(t *testing.T) {
-	policies := normalizePolicies("001", []Policy{
+	policies := normalizePolicies("001", "", []Policy{
 		{Object: "/user/list", Action: "POST"},
 		{Object: "/user/list", Action: "POST"},
 		{Object: "", Action: "POST"},

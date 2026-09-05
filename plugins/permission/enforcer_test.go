@@ -5,12 +5,20 @@ import (
 	"database/sql"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	_ "modernc.org/sqlite"
 )
 
 func newTestEnforcer(t *testing.T) *Enforcer {
+	t.Helper()
+	enforcer := newUninitializedTestEnforcer(t)
+	require.NoError(t, enforcer.InitDatabase(context.Background()))
+	return enforcer
+}
+
+func newUninitializedTestEnforcer(t *testing.T) *Enforcer {
 	t.Helper()
 	db, err := sql.Open("sqlite", "file:"+t.Name()+"?mode=memory&cache=shared")
 	require.NoError(t, err)
@@ -20,7 +28,6 @@ func newTestEnforcer(t *testing.T) *Enforcer {
 
 	enforcer, err := New(db, "sqlite3")
 	require.NoError(t, err)
-	require.NoError(t, enforcer.InitDatabase(context.Background()))
 	return enforcer
 }
 
@@ -144,7 +151,7 @@ func TestEnforcerTenantDomainIsolation(t *testing.T) {
 }
 
 func TestMigrateFromCasbinRules(t *testing.T) {
-	enforcer := newTestEnforcer(t)
+	enforcer := newUninitializedTestEnforcer(t)
 	ctx := context.Background()
 
 	_, err := enforcer.db.ExecContext(ctx, `CREATE TABLE casbin_rules (
@@ -199,6 +206,106 @@ func TestMigrateFromCasbinRules(t *testing.T) {
 		require.NotEqual(t, "ptype", name)
 	}
 	require.NoError(t, rows.Err())
+}
+
+func TestMigrateFromCasbinRulesInitializesEmptyTargetWithoutLegacy(t *testing.T) {
+	enforcer := newUninitializedTestEnforcer(t)
+	ctx := context.Background()
+
+	migrated, err := enforcer.MigrateFromCasbinRules(ctx)
+	require.NoError(t, err)
+	require.Zero(t, migrated)
+
+	targetExists, err := enforcer.tableExists(ctx, tableName)
+	require.NoError(t, err)
+	require.True(t, targetExists)
+	legacyExists, err := enforcer.tableExists(ctx, legacyTableName)
+	require.NoError(t, err)
+	require.False(t, legacyExists)
+
+	var count int
+	require.NoError(t, enforcer.db.QueryRowContext(ctx, "SELECT COUNT(1) FROM sys_permissions").Scan(&count))
+	require.Zero(t, count)
+}
+
+func TestMigrateFromCasbinRulesSkipsExistingTarget(t *testing.T) {
+	enforcer := newTestEnforcer(t)
+	ctx := context.Background()
+
+	_, err := enforcer.db.ExecContext(ctx, `CREATE TABLE casbin_rules (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		ptype TEXT NOT NULL DEFAULT '',
+		v0 TEXT NOT NULL DEFAULT '',
+		v1 TEXT NOT NULL DEFAULT '',
+		v2 TEXT NOT NULL DEFAULT '',
+		v3 TEXT NOT NULL DEFAULT '',
+		v4 TEXT NOT NULL DEFAULT '',
+		v5 TEXT NOT NULL DEFAULT ''
+	)`)
+	require.NoError(t, err)
+	_, err = enforcer.db.ExecContext(ctx, "INSERT INTO casbin_rules (ptype, v0, v1, v2) VALUES ('p', '001', '/api/user', 'GET')")
+	require.NoError(t, err)
+
+	migrated, err := enforcer.MigrateFromCasbinRules(ctx)
+	require.NoError(t, err)
+	require.Zero(t, migrated)
+
+	allowed, err := enforcer.Check(ctx, []string{"001"}, "/api/user", "GET")
+	require.NoError(t, err)
+	require.False(t, allowed)
+}
+
+func TestMigrateFromCasbinRulesRemovesIncompleteTarget(t *testing.T) {
+	enforcer := newUninitializedTestEnforcer(t)
+	ctx := context.Background()
+
+	_, err := enforcer.db.ExecContext(ctx, `CREATE TABLE casbin_rules (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		ptype TEXT NOT NULL DEFAULT '',
+		v0 TEXT NOT NULL DEFAULT '',
+		v1 TEXT NOT NULL DEFAULT '',
+		v2 TEXT NOT NULL DEFAULT '',
+		v3 TEXT NOT NULL DEFAULT '',
+		v4 TEXT NOT NULL DEFAULT '',
+		v5 TEXT NOT NULL DEFAULT ''
+	)`)
+	require.NoError(t, err)
+	_, err = enforcer.db.ExecContext(ctx,
+		"INSERT INTO casbin_rules (ptype, v0, v1, v2) VALUES (?, ?, ?, ?)",
+		"p", "001", strings.Repeat("/", 513), "GET",
+	)
+	require.NoError(t, err)
+
+	_, err = enforcer.MigrateFromCasbinRules(ctx)
+	require.Error(t, err)
+	targetExists, err := enforcer.tableExists(ctx, tableName)
+	require.NoError(t, err)
+	require.False(t, targetExists)
+
+	_, err = enforcer.db.ExecContext(ctx, "UPDATE casbin_rules SET v1 = '/api/user' WHERE v0 = '001'")
+	require.NoError(t, err)
+	migrated, err := enforcer.MigrateFromCasbinRules(ctx)
+	require.NoError(t, err)
+	require.EqualValues(t, 1, migrated)
+}
+
+func TestMigrationTimeout(t *testing.T) {
+	ctx, cancel, err := withMigrationTimeout(context.Background(), []time.Duration{0})
+	require.NoError(t, err)
+	defer cancel()
+	_, hasDeadline := ctx.Deadline()
+	require.False(t, hasDeadline)
+
+	ctx, cancel, err = withMigrationTimeout(context.Background(), []time.Duration{time.Second})
+	require.NoError(t, err)
+	defer cancel()
+	_, hasDeadline = ctx.Deadline()
+	require.True(t, hasDeadline)
+
+	_, _, err = withMigrationTimeout(context.Background(), []time.Duration{-time.Second})
+	require.Error(t, err)
+	_, _, err = withMigrationTimeout(context.Background(), []time.Duration{time.Second, time.Second})
+	require.Error(t, err)
 }
 
 func TestPermissionSchemaLengthsAndGlobalUniqueIndex(t *testing.T) {

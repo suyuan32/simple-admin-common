@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/suyuan32/simple-admin-common/config"
 )
@@ -111,33 +112,50 @@ func (e *Enforcer) InitDatabase(ctx context.Context) error {
 	return e.ensureSchema(ctx)
 }
 
-// MigrateFromCasbinRules copies legacy p policies from casbin_rules into an
-// empty sys_permissions table. It is safe to call from Core's initialization
-// flow: after the new table has data, later calls are deliberate no-ops so old
-// rules cannot restore permissions that were revoked in sys_permissions.
+// MigrateFromCasbinRules creates sys_permissions and copies legacy p policies
+// from casbin_rules only when sys_permissions did not exist before the call.
+// An existing table is always authoritative, including an intentionally empty
+// one, so later initialization cannot restore revoked permissions.
 //
 // The legacy mapping is v0..v5 -> v0..v5. Casbin g rules and all other ptype
-// values are ignored because Simple Admin's API authorization only uses p.
-func (e *Enforcer) MigrateFromCasbinRules(ctx context.Context) (int64, error) {
-	if err := e.InitDatabase(ctx); err != nil {
+// values are ignored because Simple Admin's API authorization only uses p. An
+// optional timeout of zero disables the migration deadline. A failed first
+// migration removes the newly created target table so it can be retried after
+// legacy data is corrected.
+func (e *Enforcer) MigrateFromCasbinRules(ctx context.Context, timeouts ...time.Duration) (migrated int64, err error) {
+	migrationCtx, cancel, err := withMigrationTimeout(ctx, timeouts)
+	if err != nil {
 		return 0, err
 	}
+	defer cancel()
 
-	var targetCount int64
-	query := fmt.Sprintf("SELECT COUNT(1) FROM %s", tableName)
-	if err := e.db.QueryRowContext(ctx, query).Scan(&targetCount); err != nil {
+	targetExists, err := e.tableExists(migrationCtx, tableName)
+	if err != nil {
 		return 0, err
 	}
-	if targetCount > 0 {
+	if targetExists {
 		return 0, nil
 	}
 
-	exists, err := e.tableExists(ctx, legacyTableName)
-	if err != nil || !exists {
+	if err := e.InitDatabase(migrationCtx); err != nil {
+		return 0, err
+	}
+	createdTarget := true
+	defer func() {
+		if !createdTarget || err == nil {
+			return
+		}
+		if dropErr := e.dropTable(context.Background(), tableName); dropErr != nil {
+			err = fmt.Errorf("%w; failed to remove incomplete %s table: %v", err, tableName, dropErr)
+		}
+	}()
+
+	legacyExists, err := e.tableExists(migrationCtx, legacyTableName)
+	if err != nil || !legacyExists {
 		return 0, err
 	}
 
-	tx, err := e.db.BeginTx(ctx, nil)
+	tx, err := e.db.BeginTx(migrationCtx, nil)
 	if err != nil {
 		return 0, err
 	}
@@ -145,20 +163,53 @@ func (e *Enforcer) MigrateFromCasbinRules(ctx context.Context) (int64, error) {
 		_ = tx.Rollback()
 	}()
 
-	query = fmt.Sprintf(
+	countQuery := fmt.Sprintf(
+		"SELECT COUNT(1) FROM %s WHERE ptype = %s",
+		legacyTableName, e.placeholder(1),
+	)
+	var sourceCount int64
+	if err = tx.QueryRowContext(migrationCtx, countQuery, legacyPolicyType).Scan(&sourceCount); err != nil {
+		return 0, err
+	}
+
+	insertQuery := fmt.Sprintf(
 		"INSERT INTO %s (v0, v1, v2, v3, v4, v5) "+
 			"SELECT v0, v1, v2, v3, v4, v5 FROM %s WHERE ptype = %s",
 		tableName, legacyTableName, e.placeholder(1),
 	)
-	result, err := tx.ExecContext(ctx, query, legacyPolicyType)
-	if err != nil {
-		return 0, err
-	}
-	if err := tx.Commit(); err != nil {
+	if _, err = tx.ExecContext(migrationCtx, insertQuery, legacyPolicyType); err != nil {
 		return 0, err
 	}
 
-	return result.RowsAffected()
+	countQuery = fmt.Sprintf("SELECT COUNT(1) FROM %s", tableName)
+	var targetCount int64
+	if err = tx.QueryRowContext(migrationCtx, countQuery).Scan(&targetCount); err != nil {
+		return 0, err
+	}
+	if targetCount != sourceCount {
+		return 0, fmt.Errorf("permission migration row count mismatch: casbin_rules=%d, sys_permissions=%d", sourceCount, targetCount)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return 0, err
+	}
+
+	return targetCount, nil
+}
+
+func withMigrationTimeout(ctx context.Context, timeouts []time.Duration) (context.Context, context.CancelFunc, error) {
+	if len(timeouts) > 1 {
+		return nil, nil, errors.New("permission migration accepts at most one timeout")
+	}
+	if len(timeouts) == 0 || timeouts[0] == 0 {
+		return ctx, func() {}, nil
+	}
+	if timeouts[0] < 0 {
+		return nil, nil, errors.New("permission migration timeout cannot be negative")
+	}
+
+	timeoutCtx, cancel := context.WithTimeout(ctx, timeouts[0])
+	return timeoutCtx, cancel, nil
 }
 
 // Check returns whether any subject has permission to access object with action.
@@ -596,6 +647,11 @@ func (e *Enforcer) ensureLookupIndex(ctx context.Context, indexName, columns str
 	}
 
 	_, err := e.db.ExecContext(ctx, query)
+	return err
+}
+
+func (e *Enforcer) dropTable(ctx context.Context, name string) error {
+	_, err := e.db.ExecContext(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s", name))
 	return err
 }
 

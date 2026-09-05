@@ -23,9 +23,11 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/suyuan32/simple-admin-common/config"
 )
 
@@ -54,32 +56,46 @@ type Policy struct {
 // The supported matcher is the project's current matcher:
 // r.sub == p.sub && keyMatch2(r.obj, p.obj) && r.act == p.act.
 type Enforcer struct {
-	db      *sql.DB
-	dialect string
+	db           *sql.DB
+	dialect      string
+	cache        *permissionDecisionCache
+	patternCache *permissionPatternCache
 }
+
+// EnforcerOption customizes an Enforcer without changing the existing
+// constructor shape used by Simple Admin services.
+type EnforcerOption func(*Enforcer)
 
 // New creates an on-demand permission enforcer from an existing database pool.
 // The caller owns db and is responsible for closing it. Call InitDatabase from
 // the service's database initialization flow before serving protected routes.
-func New(db *sql.DB, dialect string) (*Enforcer, error) {
+func New(db *sql.DB, dialect string, options ...EnforcerOption) (*Enforcer, error) {
 	if db == nil {
 		return nil, errors.New("permission database cannot be nil")
 	}
 
-	return &Enforcer{
-		db:      db,
-		dialect: strings.ToLower(dialect),
-	}, nil
+	enforcer := &Enforcer{
+		db:           db,
+		dialect:      strings.ToLower(dialect),
+		patternCache: newPermissionPatternCache(),
+	}
+	for _, option := range options {
+		if option != nil {
+			option(enforcer)
+		}
+	}
+
+	return enforcer, nil
 }
 
 // NewWithDatabaseConf opens a dedicated database pool for permission checks.
-func NewWithDatabaseConf(conf config.DatabaseConf) (*Enforcer, error) {
+func NewWithDatabaseConf(conf config.DatabaseConf, options ...EnforcerOption) (*Enforcer, error) {
 	db, err := conf.NewDB()
 	if err != nil {
 		return nil, err
 	}
 
-	enforcer, err := New(db, conf.Type)
+	enforcer, err := New(db, conf.Type, options...)
 	if err != nil {
 		_ = db.Close()
 		return nil, err
@@ -90,8 +106,35 @@ func NewWithDatabaseConf(conf config.DatabaseConf) (*Enforcer, error) {
 
 // MustNewWithDatabaseConf is NewWithDatabaseConf that panics on configuration
 // or database errors, matching the existing service-context construction style.
-func MustNewWithDatabaseConf(conf config.DatabaseConf) *Enforcer {
-	enforcer, err := NewWithDatabaseConf(conf)
+func MustNewWithDatabaseConf(conf config.DatabaseConf, options ...EnforcerOption) *Enforcer {
+	enforcer, err := NewWithDatabaseConf(conf, options...)
+	if err != nil {
+		panic(err)
+	}
+
+	return enforcer
+}
+
+// NewWithDatabaseConfAndRedis opens a permission database pool and enables
+// the bounded Redis/L1 decision cache. The existing Enforcer API remains
+// unchanged; this constructor only changes where a decision is obtained.
+func NewWithDatabaseConfAndRedis(conf config.DatabaseConf, rds redis.UniversalClient, options ...PermissionCacheOptions) (*Enforcer, error) {
+	cacheOptions := DefaultPermissionCacheOptions()
+	cacheOptions.KeyPrefix = permissionCacheNamespace(conf)
+	if len(options) > 0 {
+		cacheOptions = options[0]
+		if cacheOptions.KeyPrefix == "" {
+			cacheOptions.KeyPrefix = permissionCacheNamespace(conf)
+		}
+	}
+
+	return NewWithDatabaseConf(conf, WithRedisCache(rds, cacheOptions))
+}
+
+// MustNewWithDatabaseConfAndRedis is the panic-on-error variant of
+// NewWithDatabaseConfAndRedis.
+func MustNewWithDatabaseConfAndRedis(conf config.DatabaseConf, rds redis.UniversalClient, options ...PermissionCacheOptions) *Enforcer {
+	enforcer, err := NewWithDatabaseConfAndRedis(conf, rds, options...)
 	if err != nil {
 		panic(err)
 	}
@@ -193,6 +236,7 @@ func (e *Enforcer) MigrateFromCasbinRules(ctx context.Context, timeouts ...time.
 	if err = tx.Commit(); err != nil {
 		return 0, err
 	}
+	e.invalidateCache()
 
 	return targetCount, nil
 }
@@ -228,12 +272,36 @@ func (e *Enforcer) Check(ctx context.Context, subjects []string, object, action 
 		return false, nil
 	}
 
+	var cacheKey, cacheVersion string
+	cacheVersionKnown := e.cache == nil
+	if e.cache != nil {
+		cacheKey = e.cache.key(subjects, object, action, domain)
+		if allowed, hit, version, versionKnown := e.cache.get(ctx, cacheKey); hit {
+			return allowed, nil
+		} else {
+			cacheVersion = version
+			cacheVersionKnown = versionKnown
+		}
+	}
+
+	matched, err := e.checkDatabase(ctx, subjects, object, action, domain, cacheVersion, cacheVersionKnown)
+	if err != nil {
+		return false, err
+	}
+	if e.cache != nil {
+		e.cache.set(ctx, cacheKey, matched, cacheVersion)
+	}
+
+	return matched, nil
+}
+
+func (e *Enforcer) checkDatabase(ctx context.Context, subjects []string, object, action, domain, cacheVersion string, cacheVersionKnown bool) (bool, error) {
 	matched, err := e.hasExactPolicy(ctx, subjects, object, action, domain)
 	if err != nil || matched {
 		return matched, err
 	}
 
-	return e.hasMatchedPatternPolicy(ctx, subjects, object, action, domain)
+	return e.hasMatchedPatternPolicy(ctx, subjects, object, action, domain, cacheVersion, cacheVersionKnown)
 }
 
 // BatchEnforce keeps the familiar Casbin method shape for gradual migrations.
@@ -241,7 +309,7 @@ func (e *Enforcer) Check(ctx context.Context, subjects []string, object, action 
 // requests and evaluates them on demand.
 // New middleware should prefer Check so multiple roles are queried together.
 func (e *Enforcer) BatchEnforce(requests [][]any) ([]bool, error) {
-	results := make([]bool, len(requests))
+	parsed := make([]permissionRequest, len(requests))
 	for i, request := range requests {
 		if len(request) != 3 && len(request) != 4 {
 			return nil, fmt.Errorf("permission request %d must contain subject, object, action and optional domain", i)
@@ -268,14 +336,199 @@ func (e *Enforcer) BatchEnforce(requests [][]any) ([]bool, error) {
 			}
 		}
 
-		allowed, err := e.Check(context.Background(), []string{subject}, object, action, domain)
-		if err != nil {
-			return nil, err
+		parsed[i] = permissionRequest{Subject: subject, Object: object, Action: action, Domain: domain}
+	}
+
+	return e.batchEnforce(context.Background(), parsed)
+}
+
+type permissionRequest struct {
+	Subject string
+	Object  string
+	Action  string
+	Domain  string
+}
+
+type permissionRequestKey struct {
+	Subject string
+	Object  string
+	Action  string
+	Domain  string
+}
+
+type permissionPattern struct {
+	matcher *regexp.Regexp
+}
+
+const permissionQueryBatchSize = 500
+
+func (e *Enforcer) batchEnforce(ctx context.Context, requests []permissionRequest) ([]bool, error) {
+	results := make([]bool, len(requests))
+	unique := make([]permissionRequest, 0, len(requests))
+	indexes := make(map[permissionRequestKey][]int, len(requests))
+	for i, request := range requests {
+		if request.Subject == "" {
+			continue
 		}
-		results[i] = allowed
+		key := permissionRequestKey{
+			Subject: request.Subject,
+			Object:  request.Object,
+			Action:  request.Action,
+			Domain:  request.Domain,
+		}
+		if _, ok := indexes[key]; !ok {
+			unique = append(unique, request)
+		}
+		indexes[key] = append(indexes[key], i)
+	}
+
+	exactMatches, err := e.batchExactMatches(ctx, unique)
+	if err != nil {
+		return nil, err
+	}
+	for _, request := range unique {
+		key := permissionRequestKey{
+			Subject: request.Subject,
+			Object:  request.Object,
+			Action:  request.Action,
+			Domain:  request.Domain,
+		}
+		allowed := false
+		if _, ok := exactMatches[key]; ok {
+			allowed = true
+		} else {
+			allowed, err = e.hasMatchedPatternPolicy(ctx, []string{request.Subject}, request.Object, request.Action, request.Domain, "", false)
+			if err != nil {
+				return nil, err
+			}
+		}
+		for _, index := range indexes[key] {
+			results[index] = allowed
+		}
 	}
 
 	return results, nil
+}
+
+func (e *Enforcer) batchExactMatches(ctx context.Context, requests []permissionRequest) (map[permissionRequestKey]struct{}, error) {
+	matched := make(map[permissionRequestKey]struct{})
+	for start := 0; start < len(requests); start += permissionQueryBatchSize {
+		end := start + permissionQueryBatchSize
+		if end > len(requests) {
+			end = len(requests)
+		}
+
+		query := fmt.Sprintf("SELECT v0, v1, v2, v3 FROM %s WHERE (v0, v1, v2, v3) IN (%s)", tableName,
+			e.permissionRequestTuples(end-start))
+		args := make([]any, 0, (end-start)*4)
+		for _, request := range requests[start:end] {
+			args = append(args, request.Subject, request.Object, request.Action, request.Domain)
+		}
+
+		rows, err := e.db.QueryContext(ctx, query, args...)
+		if err != nil {
+			return nil, err
+		}
+		for rows.Next() {
+			var request permissionRequest
+			if err = rows.Scan(&request.Subject, &request.Object, &request.Action, &request.Domain); err != nil {
+				_ = rows.Close()
+				return nil, err
+			}
+			matched[permissionRequestKey{
+				Subject: request.Subject,
+				Object:  request.Object,
+				Action:  request.Action,
+				Domain:  request.Domain,
+			}] = struct{}{}
+		}
+		if err = rows.Err(); err != nil {
+			_ = rows.Close()
+			return nil, err
+		}
+		if err = rows.Close(); err != nil {
+			return nil, err
+		}
+	}
+
+	return matched, nil
+}
+
+func (e *Enforcer) permissionRequestTuples(count int) string {
+	tuple := make([]string, 0, count)
+	argument := 1
+	for i := 0; i < count; i++ {
+		values := make([]string, 0, 4)
+		for j := 0; j < 4; j++ {
+			values = append(values, e.placeholder(argument))
+			argument++
+		}
+		tuple = append(tuple, "("+strings.Join(values, ", ")+")")
+	}
+	return strings.Join(tuple, ", ")
+}
+
+func (e *Enforcer) insertPolicyRows(ctx context.Context, tx *sql.Tx, policies []Policy, ignoreDuplicates bool) (bool, error) {
+	added := false
+	for start := 0; start < len(policies); start += permissionQueryBatchSize {
+		end := start + permissionQueryBatchSize
+		if end > len(policies) {
+			end = len(policies)
+		}
+
+		query := e.policyInsertQuery(end-start, ignoreDuplicates)
+		args := make([]any, 0, (end-start)*6)
+		for _, policy := range policies[start:end] {
+			args = append(args, policy.Subject, policy.Object, policy.Action, policy.Domain, "", "")
+		}
+
+		result, err := tx.ExecContext(ctx, query, args...)
+		if err != nil {
+			return false, err
+		}
+		if affected, err := result.RowsAffected(); err == nil && affected > 0 {
+			added = true
+		}
+	}
+
+	return added, nil
+}
+
+func (e *Enforcer) policyInsertQuery(count int, ignoreDuplicates bool) string {
+	values := make([]string, 0, count)
+	argument := 1
+	for i := 0; i < count; i++ {
+		row := make([]string, 0, 6)
+		for j := 0; j < 6; j++ {
+			row = append(row, e.placeholder(argument))
+			argument++
+		}
+		values = append(values, "("+strings.Join(row, ", ")+")")
+	}
+
+	query := fmt.Sprintf("INSERT INTO %s (v0, v1, v2, v3, v4, v5) VALUES %s", tableName, strings.Join(values, ", "))
+	if !ignoreDuplicates {
+		return query
+	}
+
+	switch e.dialect {
+	case "mysql":
+		return query + " ON DUPLICATE KEY UPDATE v0 = v0"
+	case "postgres", "sqlite", "sqlite3":
+		return query + " ON CONFLICT DO NOTHING"
+	default:
+		return query
+	}
+}
+
+func (e *Enforcer) resourceTuples(start, count int) string {
+	values := make([]string, 0, count)
+	argument := start
+	for i := 0; i < count; i++ {
+		values = append(values, fmt.Sprintf("(%s, %s)", e.placeholder(argument), e.placeholder(argument+1)))
+		argument += 2
+	}
+	return strings.Join(values, ", ")
 }
 
 // ListPolicies returns a role's API policies without loading the full model.
@@ -337,20 +590,15 @@ func (e *Enforcer) ReplacePolicies(ctx context.Context, subject string, policies
 		return err
 	}
 
-	insertQuery := fmt.Sprintf(
-		"INSERT INTO %s (v0, v1, v2, v3, v4, v5) VALUES (%s, %s, %s, %s, %s, %s)",
-		tableName,
-		e.placeholder(1), e.placeholder(2), e.placeholder(3), e.placeholder(4),
-		e.placeholder(5), e.placeholder(6),
-	)
-	for _, policy := range policies {
-		if _, err = tx.ExecContext(ctx, insertQuery,
-			subject, policy.Object, policy.Action, policy.Domain, "", ""); err != nil {
-			return err
-		}
+	if _, err = e.insertPolicyRows(ctx, tx, policies, false); err != nil {
+		return err
 	}
 
-	return tx.Commit()
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+	e.invalidateCache()
+	return nil
 }
 
 // RemovePolicies removes one subject's API policies in one domain. It returns
@@ -372,6 +620,9 @@ func (e *Enforcer) RemovePolicies(ctx context.Context, subject string, domains .
 	count, err := result.RowsAffected()
 	if err != nil {
 		return false, err
+	}
+	if count > 0 {
+		e.invalidateCache()
 	}
 
 	return count > 0, nil
@@ -396,6 +647,9 @@ func (e *Enforcer) RenameSubject(ctx context.Context, oldSubject, newSubject str
 		tableName, e.placeholder(1), e.placeholder(2), e.placeholder(3),
 	)
 	_, err = e.db.ExecContext(ctx, query, newSubject, oldSubject, domain)
+	if err == nil {
+		e.invalidateCache()
+	}
 	return err
 }
 
@@ -415,31 +669,16 @@ func (e *Enforcer) AddPolicies(ctx context.Context, policies []Policy) (bool, er
 		_ = tx.Rollback()
 	}()
 
-	insertQuery := fmt.Sprintf(
-		"INSERT INTO %s (v0, v1, v2, v3, v4, v5) "+
-			"SELECT %s, %s, %s, %s, %s, %s WHERE NOT EXISTS "+
-			"(SELECT 1 FROM %s WHERE v0 = %s AND v1 = %s AND v2 = %s AND v3 = %s AND v4 = %s AND v5 = %s)",
-		tableName,
-		e.placeholder(1), e.placeholder(2), e.placeholder(3), e.placeholder(4), e.placeholder(5), e.placeholder(6),
-		tableName,
-		e.placeholder(7), e.placeholder(8), e.placeholder(9), e.placeholder(10), e.placeholder(11), e.placeholder(12),
-	)
-
-	added := false
-	for _, policy := range policies {
-		result, err := tx.ExecContext(ctx, insertQuery,
-			policy.Subject, policy.Object, policy.Action, policy.Domain, "", "",
-			policy.Subject, policy.Object, policy.Action, policy.Domain, "", "")
-		if err != nil {
-			return false, err
-		}
-		if affected, err := result.RowsAffected(); err == nil && affected > 0 {
-			added = true
-		}
+	added, err := e.insertPolicyRows(ctx, tx, policies, true)
+	if err != nil {
+		return false, err
 	}
 
 	if err := tx.Commit(); err != nil {
 		return false, err
+	}
+	if added {
+		e.invalidateCache()
 	}
 	return added, nil
 }
@@ -458,6 +697,9 @@ func (e *Enforcer) RemoveDomainPolicies(ctx context.Context, domain string) (boo
 	count, err := result.RowsAffected()
 	if err != nil {
 		return false, err
+	}
+	if count > 0 {
+		e.invalidateCache()
 	}
 	return count > 0, nil
 }
@@ -479,16 +721,21 @@ func (e *Enforcer) RemovePoliciesByResources(ctx context.Context, domains []stri
 		_ = tx.Rollback()
 	}()
 
-	query := fmt.Sprintf(
-		"DELETE FROM %s WHERE v3 IN (%s) AND v1 = %s AND v2 = %s",
-		tableName, e.placeholders(1, len(domains)),
-		e.placeholder(len(domains)+1), e.placeholder(len(domains)+2),
-	)
 	removed := false
-	for _, resource := range resources {
-		args := make([]any, 0, len(domains)+2)
+	for start := 0; start < len(resources); start += permissionQueryBatchSize {
+		end := start + permissionQueryBatchSize
+		if end > len(resources) {
+			end = len(resources)
+		}
+		query := fmt.Sprintf(
+			"DELETE FROM %s WHERE v3 IN (%s) AND (v1, v2) IN (%s)",
+			tableName, e.placeholders(1, len(domains)), e.resourceTuples(len(domains)+1, end-start),
+		)
+		args := make([]any, 0, len(domains)+(end-start)*2)
 		args = append(args, stringsToAny(domains)...)
-		args = append(args, resource.Object, resource.Action)
+		for _, resource := range resources[start:end] {
+			args = append(args, resource.Object, resource.Action)
+		}
 		result, err := tx.ExecContext(ctx, query, args...)
 		if err != nil {
 			return false, err
@@ -500,6 +747,9 @@ func (e *Enforcer) RemovePoliciesByResources(ctx context.Context, domains []stri
 
 	if err := tx.Commit(); err != nil {
 		return false, err
+	}
+	if removed {
+		e.invalidateCache()
 	}
 	return removed, nil
 }
@@ -526,7 +776,27 @@ func (e *Enforcer) hasExactPolicy(ctx context.Context, subjects []string, object
 	return true, nil
 }
 
-func (e *Enforcer) hasMatchedPatternPolicy(ctx context.Context, subjects []string, object, action, domain string) (bool, error) {
+func (e *Enforcer) hasMatchedPatternPolicy(ctx context.Context, subjects []string, object, action, domain, cacheVersion string, cacheVersionKnown bool) (bool, error) {
+	cacheKey := permissionPatternCacheKey(subjects, action, domain)
+	patterns, cached := e.patternCache.get(cacheKey, cacheVersion, cacheVersionKnown)
+	if !cached {
+		var err error
+		patterns, err = e.loadPatternPolicies(ctx, subjects, action, domain)
+		if err != nil {
+			return false, err
+		}
+		e.patternCache.set(cacheKey, patterns, cacheVersion)
+	}
+
+	for _, pattern := range patterns {
+		if pattern.matcher != nil && pattern.matcher.MatchString(object) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (e *Enforcer) loadPatternPolicies(ctx context.Context, subjects []string, action, domain string) ([]permissionPattern, error) {
 	args := make([]any, 0, len(subjects)+4)
 	args = append(args, stringsToAny(subjects)...)
 	args = append(args, action, domain, "%*%", "%:%")
@@ -538,21 +808,27 @@ func (e *Enforcer) hasMatchedPatternPolicy(ctx context.Context, subjects []strin
 	)
 	rows, err := e.db.QueryContext(ctx, query, args...)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	defer rows.Close()
 
+	patterns := make([]permissionPattern, 0)
 	for rows.Next() {
-		var pattern string
-		if err = rows.Scan(&pattern); err != nil {
-			return false, err
+		var patternValue string
+		if err = rows.Scan(&patternValue); err != nil {
+			return nil, err
 		}
-		if keyMatch2(object, pattern) {
-			return true, nil
-		}
+		matcher, _ := compileKeyMatch2(patternValue)
+		patterns = append(patterns, permissionPattern{matcher: matcher})
 	}
 
-	return false, rows.Err()
+	return patterns, rows.Err()
+}
+
+func permissionPatternCacheKey(subjects []string, action, domain string) string {
+	canonicalSubjects := append([]string(nil), subjects...)
+	sort.Strings(canonicalSubjects)
+	return strings.Join(append(canonicalSubjects, action, domain), "\x00")
 }
 
 func (e *Enforcer) placeholder(index int) string {
@@ -586,6 +862,8 @@ func (e *Enforcer) ensureSchema(ctx context.Context) error {
 			v5 VARCHAR(12) NOT NULL DEFAULT '',
 			PRIMARY KEY (id),
 			UNIQUE KEY sys_permissions_v0_v1_v2_v3_v4_v5 (v0, v1, v2, v3, v4, v5),
+			KEY sys_permissions_v0_v3_v1_v2 (v0, v3, v1, v2),
+			KEY sys_permissions_v0_v3_v2_v1 (v0, v3, v2, v1),
 			KEY sys_permissions_v3_v0_v2 (v3, v0, v2),
 			KEY sys_permissions_v3_v1_v2 (v3, v1, v2)
 		)`
@@ -619,6 +897,12 @@ func (e *Enforcer) ensureSchema(ctx context.Context) error {
 		return err
 	}
 
+	if err := e.ensureLookupIndex(ctx, "sys_permissions_v0_v3_v1_v2", "v0, v3, v1, v2"); err != nil {
+		return err
+	}
+	if err := e.ensureLookupIndex(ctx, "sys_permissions_v0_v3_v2_v1", "v0, v3, v2, v1"); err != nil {
+		return err
+	}
 	if err := e.ensureLookupIndex(ctx, "sys_permissions_v3_v0_v2", "v3, v0, v2"); err != nil {
 		return err
 	}
@@ -766,8 +1050,12 @@ func stringsToAny(values []string) []any {
 }
 
 func keyMatch2(object, pattern string) bool {
+	matcher, err := compileKeyMatch2(pattern)
+	return err == nil && matcher.MatchString(object)
+}
+
+func compileKeyMatch2(pattern string) (*regexp.Regexp, error) {
 	pattern = strings.ReplaceAll(pattern, "/*", "/.*")
 	pattern = keyMatch2Parameter.ReplaceAllString(pattern, "[^/]+")
-	matcher, err := regexp.Compile("^" + pattern + "$")
-	return err == nil && matcher.MatchString(object)
+	return regexp.Compile("^" + pattern + "$")
 }

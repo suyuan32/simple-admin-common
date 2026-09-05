@@ -3,6 +3,7 @@ package permission
 import (
 	"context"
 	"database/sql"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -102,6 +103,45 @@ func TestEnforcerBatchEnforceCompatibility(t *testing.T) {
 
 	_, err = enforcer.BatchEnforce([][]any{{"001", "/health"}})
 	require.Error(t, err)
+}
+
+func TestEnforcerBatchEnforceUsesChunkedExactQueries(t *testing.T) {
+	enforcer := newTestEnforcer(t)
+	ctx := context.Background()
+	policies := make([]Policy, 0, 600)
+	requests := make([][]any, 0, 600)
+	for i := 0; i < 600; i++ {
+		object := "/batch/item/" + strconv.Itoa(i)
+		policies = append(policies, Policy{Object: object, Action: "GET"})
+		requests = append(requests, []any{"batch", object, "GET"})
+	}
+	require.NoError(t, enforcer.ReplacePolicies(ctx, "batch", policies))
+
+	results, err := enforcer.BatchEnforce(requests)
+	require.NoError(t, err)
+	require.Len(t, results, 600)
+	for _, result := range results {
+		require.True(t, result)
+	}
+}
+
+func TestPatternCacheInvalidation(t *testing.T) {
+	enforcer := newTestEnforcer(t)
+	ctx := context.Background()
+	require.NoError(t, enforcer.ReplacePolicies(ctx, "admin", []Policy{
+		{Object: "/api/user/:id", Action: "GET"},
+	}))
+
+	allowed, err := enforcer.Check(ctx, []string{"admin"}, "/api/user/1", "GET")
+	require.NoError(t, err)
+	require.True(t, allowed)
+
+	require.NoError(t, enforcer.ReplacePolicies(ctx, "admin", []Policy{
+		{Object: "/api/order/:id", Action: "GET"},
+	}))
+	allowed, err = enforcer.Check(ctx, []string{"admin"}, "/api/user/1", "GET")
+	require.NoError(t, err)
+	require.False(t, allowed)
 }
 
 func TestEnforcerTenantDomainIsolation(t *testing.T) {

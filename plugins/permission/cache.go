@@ -14,14 +14,13 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/suyuan32/simple-admin-common/config"
 )
 
 const (
 	defaultPermissionCacheTTL       = 30 * time.Second
 	defaultPermissionLocalCacheTTL  = 2 * time.Second
 	defaultPermissionLocalCacheSize = 4096
-	defaultPermissionCachePrefix    = "SIMPLE_ADMIN:PERMISSION:"
+	defaultPermissionCachePrefix    = "SIMPLE:PERMISSION:"
 	permissionPatternCacheTTL       = 30 * time.Second
 	permissionPatternCacheSize      = 1024
 	permissionPatternCacheMaxRules  = 4096
@@ -329,17 +328,6 @@ func redisValueString(value any) (string, bool) {
 	default:
 		return "", false
 	}
-}
-
-func permissionCacheNamespace(c config.DatabaseConf) string {
-	identity := strings.Join([]string{
-		strings.ToLower(c.Type),
-		c.Host,
-		strconv.Itoa(c.Port),
-		c.DBName,
-	}, "|")
-	hash := sha256.Sum256([]byte(identity))
-	return defaultPermissionCachePrefix + hex.EncodeToString(hash[:8]) + ":"
 }
 
 type permissionPatternCache struct {

@@ -118,13 +118,15 @@ func MustNewWithDatabaseConf(conf config.DatabaseConf, options ...EnforcerOption
 // NewWithDatabaseConfAndRedis opens a permission database pool and enables
 // the bounded Redis/L1 decision cache. The existing Enforcer API remains
 // unchanged; this constructor only changes where a decision is obtained.
+// Enforcers use the same default Redis namespace so distributed modules can
+// reuse decisions. Set PermissionCacheOptions.KeyPrefix to isolate a service
+// or environment explicitly.
 func NewWithDatabaseConfAndRedis(conf config.DatabaseConf, rds redis.UniversalClient, options ...PermissionCacheOptions) (*Enforcer, error) {
 	cacheOptions := DefaultPermissionCacheOptions()
-	cacheOptions.KeyPrefix = permissionCacheNamespace(conf)
 	if len(options) > 0 {
 		cacheOptions = options[0]
 		if cacheOptions.KeyPrefix == "" {
-			cacheOptions.KeyPrefix = permissionCacheNamespace(conf)
+			cacheOptions.KeyPrefix = defaultPermissionCachePrefix
 		}
 	}
 

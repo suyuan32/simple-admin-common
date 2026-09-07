@@ -278,7 +278,7 @@ func (e *Enforcer) Check(ctx context.Context, subjects []string, object, action 
 	cacheVersionKnown := e.cache == nil
 	if e.cache != nil {
 		cacheKey = e.cache.key(subjects, object, action, domain)
-		if allowed, hit, version, versionKnown := e.cache.get(ctx, cacheKey); hit {
+		if allowed, hit, version, versionKnown := e.cache.get(ctx, cacheKey, subjects, domain); hit {
 			return allowed, nil
 		} else {
 			cacheVersion = version
@@ -599,7 +599,7 @@ func (e *Enforcer) ReplacePolicies(ctx context.Context, subject string, policies
 	if err = tx.Commit(); err != nil {
 		return err
 	}
-	e.invalidateCache()
+	e.invalidateCache(permissionRoleCacheScope(domain, subject))
 	return nil
 }
 
@@ -624,7 +624,7 @@ func (e *Enforcer) RemovePolicies(ctx context.Context, subject string, domains .
 		return false, err
 	}
 	if count > 0 {
-		e.invalidateCache()
+		e.invalidateCache(permissionRoleCacheScope(domain, subject))
 	}
 
 	return count > 0, nil
@@ -650,7 +650,10 @@ func (e *Enforcer) RenameSubject(ctx context.Context, oldSubject, newSubject str
 	)
 	_, err = e.db.ExecContext(ctx, query, newSubject, oldSubject, domain)
 	if err == nil {
-		e.invalidateCache()
+		e.invalidateCache(
+			permissionRoleCacheScope(domain, oldSubject),
+			permissionRoleCacheScope(domain, newSubject),
+		)
 	}
 	return err
 }
@@ -680,7 +683,11 @@ func (e *Enforcer) AddPolicies(ctx context.Context, policies []Policy) (bool, er
 		return false, err
 	}
 	if added {
-		e.invalidateCache()
+		scopes := make([]permissionCacheScope, 0, len(policies))
+		for _, policy := range policies {
+			scopes = append(scopes, permissionRoleCacheScope(policy.Domain, policy.Subject))
+		}
+		e.invalidateCache(scopes...)
 	}
 	return added, nil
 }
@@ -701,7 +708,7 @@ func (e *Enforcer) RemoveDomainPolicies(ctx context.Context, domain string) (boo
 		return false, err
 	}
 	if count > 0 {
-		e.invalidateCache()
+		e.invalidateCache(permissionTenantCacheScope(domain))
 	}
 	return count > 0, nil
 }
@@ -751,7 +758,11 @@ func (e *Enforcer) RemovePoliciesByResources(ctx context.Context, domains []stri
 		return false, err
 	}
 	if removed {
-		e.invalidateCache()
+		scopes := make([]permissionCacheScope, 0, len(domains))
+		for _, domain := range domains {
+			scopes = append(scopes, permissionTenantCacheScope(domain))
+		}
+		e.invalidateCache(scopes...)
 	}
 	return removed, nil
 }

@@ -17,17 +17,20 @@ import (
 )
 
 const (
-	defaultPermissionCacheTTL       = 30 * time.Second
+	defaultPermissionCacheTTL       = 24 * time.Hour
 	defaultPermissionLocalCacheTTL  = 2 * time.Second
 	defaultPermissionLocalCacheSize = 4096
 	defaultPermissionCachePrefix    = "SIMPLE:PERMISSION:"
+	permissionCacheVersionFormat    = "scoped-v2"
 	permissionPatternCacheTTL       = 30 * time.Second
 	permissionPatternCacheSize      = 1024
 	permissionPatternCacheMaxRules  = 4096
 )
 
 // PermissionCacheOptions controls the optional Redis/L1 permission decision
-// cache. RedisTTL is also the maximum cross-process staleness window.
+// cache. RedisTTL controls retention of decision entries; policy mutations
+// invalidate affected Redis decisions through global, tenant, or role
+// version keys.
 type PermissionCacheOptions struct {
 	RedisTTL        time.Duration
 	LocalTTL        time.Duration
@@ -85,9 +88,9 @@ func (e *Enforcer) PermissionCacheStats() PermissionCacheStats {
 	return e.cache.stats()
 }
 
-func (e *Enforcer) invalidateCache() {
+func (e *Enforcer) invalidateCache(scopes ...permissionCacheScope) {
 	if e.cache != nil {
-		e.cache.invalidate()
+		e.cache.invalidate(scopes...)
 	}
 	if e.patternCache != nil {
 		e.patternCache.clear()
@@ -117,6 +120,20 @@ type permissionLocalCacheEntry struct {
 	key       string
 	allowed   bool
 	expiresAt time.Time
+}
+
+type permissionCacheScope struct {
+	tenantID   string
+	roleCode   string
+	tenantWide bool
+}
+
+func permissionRoleCacheScope(tenantID, roleCode string) permissionCacheScope {
+	return permissionCacheScope{tenantID: tenantID, roleCode: roleCode}
+}
+
+func permissionTenantCacheScope(tenantID string) permissionCacheScope {
+	return permissionCacheScope{tenantID: tenantID, tenantWide: true}
 }
 
 func newPermissionDecisionCache(rds redis.UniversalClient, options PermissionCacheOptions) *permissionDecisionCache {
@@ -149,52 +166,48 @@ func newPermissionDecisionCache(rds redis.UniversalClient, options PermissionCac
 }
 
 func (c *permissionDecisionCache) key(subjects []string, object, action, domain string) string {
-	canonicalSubjects := append([]string(nil), subjects...)
-	sort.Strings(canonicalSubjects)
-
-	hash := sha256.New()
-	writePart := func(value string) {
-		_, _ = fmt.Fprintf(hash, "%d:", len(value))
-		_, _ = hash.Write([]byte(value))
-	}
-
-	writePart(domain)
-	writePart(action)
-	writePart(object)
-	for _, subject := range canonicalSubjects {
-		writePart(subject)
-	}
-
-	return c.keyPrefix + "DECISION:" + hex.EncodeToString(hash.Sum(nil))
+	parts := make([]string, 0, len(subjects)+3)
+	parts = append(parts, domain, action, object)
+	parts = append(parts, permissionCanonicalSubjects(subjects)...)
+	return c.keyPrefix + "DECISION:" + permissionCacheHash(parts...)
 }
 
 // get returns a decision and the Redis version used to validate a miss. A
 // local hit intentionally avoids Redis for low-latency hot routes; its short
 // TTL bounds cross-instance staleness.
-func (c *permissionDecisionCache) get(ctx context.Context, key string) (allowed, hit bool, version string, versionKnown bool) {
+func (c *permissionDecisionCache) get(ctx context.Context, key string, subjects []string, domain string) (allowed, hit bool, version string, versionKnown bool) {
 	if allowed, ok := c.getLocal(key); ok {
 		c.localHits.Add(1)
 		return allowed, true, "", false
 	}
 
-	values, err := c.rds.MGet(ctx, c.versionKey, key).Result()
+	versionKeys := c.versionKeys(subjects, domain)
+	keys := make([]string, 0, len(versionKeys)+1)
+	keys = append(keys, versionKeys...)
+	keys = append(keys, key)
+	values, err := c.rds.MGet(ctx, keys...).Result()
 	if err != nil {
 		c.redisErrors.Add(1)
 		return false, false, "", false
 	}
 
-	version = "0"
-	if len(values) > 0 {
-		if value, ok := redisValueString(values[0]); ok && value != "" {
-			version = value
+	versions := make([]string, len(versionKeys))
+	for index := range versionKeys {
+		versions[index] = "0"
+		if index < len(values) {
+			if value, ok := redisValueString(values[index]); ok && value != "" {
+				versions[index] = value
+			}
 		}
 	}
-	if len(values) < 2 {
+	version = permissionCacheVersion(versions...)
+	decisionIndex := len(versionKeys)
+	if len(values) <= decisionIndex {
 		c.redisMisses.Add(1)
 		return false, false, version, true
 	}
 
-	value, ok := redisValueString(values[1])
+	value, ok := redisValueString(values[decisionIndex])
 	if !ok {
 		c.redisMisses.Add(1)
 		return false, false, version, true
@@ -212,16 +225,16 @@ func (c *permissionDecisionCache) get(ctx context.Context, key string) (allowed,
 }
 
 func (c *permissionDecisionCache) set(ctx context.Context, key string, allowed bool, version string) {
-	if version == "" {
-		version = "0"
-	}
 	c.setLocal(key, allowed)
+	if version == "" {
+		return
+	}
 	if err := c.rds.Set(ctx, key, encodePermissionDecision(version, allowed), c.redisTTL).Err(); err == nil {
 		c.redisSets.Add(1)
 	}
 }
 
-func (c *permissionDecisionCache) invalidate() {
+func (c *permissionDecisionCache) invalidate(scopes ...permissionCacheScope) {
 	c.clearLocal()
 	if c.rds == nil {
 		return
@@ -229,7 +242,84 @@ func (c *permissionDecisionCache) invalidate() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	_ = c.rds.Incr(ctx, c.versionKey).Err()
+	_, err := c.rds.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		for _, key := range c.invalidationVersionKeys(scopes) {
+			pipe.Incr(ctx, key)
+		}
+		return nil
+	})
+	if err != nil {
+		c.redisErrors.Add(1)
+	}
+}
+
+func (c *permissionDecisionCache) versionKeys(subjects []string, domain string) []string {
+	canonicalSubjects := permissionCanonicalSubjects(subjects)
+	keys := make([]string, 0, len(canonicalSubjects)+2)
+	keys = append(keys, c.versionKey, c.tenantVersionKey(domain))
+	for _, subject := range canonicalSubjects {
+		keys = append(keys, c.roleVersionKey(domain, subject))
+	}
+	return keys
+}
+
+func (c *permissionDecisionCache) invalidationVersionKeys(scopes []permissionCacheScope) []string {
+	if len(scopes) == 0 {
+		return []string{c.versionKey}
+	}
+
+	unique := make(map[string]struct{}, len(scopes))
+	for _, scope := range scopes {
+		key := c.roleVersionKey(scope.tenantID, scope.roleCode)
+		if scope.tenantWide {
+			key = c.tenantVersionKey(scope.tenantID)
+		}
+		unique[key] = struct{}{}
+	}
+	keys := make([]string, 0, len(unique))
+	for key := range unique {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func (c *permissionDecisionCache) tenantVersionKey(tenantID string) string {
+	return c.keyPrefix + "VERSION:TENANT:" + permissionCacheKeyParts(tenantID)
+}
+
+func (c *permissionDecisionCache) roleVersionKey(tenantID, roleCode string) string {
+	return c.keyPrefix + "VERSION:ROLE:" + permissionCacheKeyParts(tenantID, roleCode)
+}
+
+func permissionCanonicalSubjects(subjects []string) []string {
+	canonicalSubjects := append([]string(nil), subjects...)
+	sort.Strings(canonicalSubjects)
+	return canonicalSubjects
+}
+
+func permissionCacheHash(values ...string) string {
+	hash := sha256.New()
+	for _, value := range values {
+		_, _ = fmt.Fprintf(hash, "%d:", len(value))
+		_, _ = hash.Write([]byte(value))
+	}
+	return hex.EncodeToString(hash.Sum(nil))
+}
+
+func permissionCacheVersion(versions ...string) string {
+	parts := make([]string, 0, len(versions)+1)
+	parts = append(parts, permissionCacheVersionFormat)
+	parts = append(parts, versions...)
+	return permissionCacheHash(parts...)
+}
+
+func permissionCacheKeyParts(values ...string) string {
+	parts := make([]string, len(values))
+	for index, value := range values {
+		parts[index] = strconv.Itoa(len(value)) + ":" + value
+	}
+	return strings.Join(parts, ":")
 }
 
 func (c *permissionDecisionCache) getLocal(key string) (bool, bool) {

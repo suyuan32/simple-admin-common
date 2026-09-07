@@ -6,6 +6,7 @@ replace github.com/zeromicro/go-zero v1.10.3 => github.com/suyuan32/simple-admin
 
 require (
 	entgo.io/ent v0.14.6
+	github.com/alicebob/miniredis/v2 v2.38.0
 	github.com/apache/rocketmq-client-go/v2 v2.1.2
 	github.com/casbin/casbin/v3 v3.11.0
 	github.com/go-sql-driver/mysql v1.10.1
@@ -90,6 +91,7 @@ require (
 	github.com/xdg-go/scram v1.2.0 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
+	github.com/yuin/gopher-lua v1.1.2 // indirect
 	github.com/zclconf/go-cty v1.18.0 // indirect
 	github.com/zclconf/go-cty-yaml v1.2.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect

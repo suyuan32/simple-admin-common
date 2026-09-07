@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
 	_ "modernc.org/sqlite"
 )
@@ -30,6 +32,134 @@ func newUninitializedTestEnforcer(t *testing.T) *Enforcer {
 	enforcer, err := New(db, "sqlite3")
 	require.NoError(t, err)
 	return enforcer
+}
+
+func newRedisTestEnforcer(t *testing.T) (*Enforcer, *redis.Client) {
+	t.Helper()
+	enforcer := newTestEnforcer(t)
+	server := miniredis.RunT(t)
+	client := redis.NewClient(&redis.Options{Addr: server.Addr()})
+	t.Cleanup(func() {
+		require.NoError(t, client.Close())
+	})
+
+	options := DefaultPermissionCacheOptions()
+	options.LocalTTL = 0
+	options.MaxLocalEntries = 0
+	WithRedisCache(client, options)(enforcer)
+	return enforcer, client
+}
+
+func TestDefaultPermissionCacheOptions(t *testing.T) {
+	options := DefaultPermissionCacheOptions()
+
+	require.Equal(t, 24*time.Hour, options.RedisTTL)
+	require.Equal(t, "SIMPLE:PERMISSION:", options.KeyPrefix)
+}
+
+func TestPermissionVersionKeysAreReadableAndCollisionFree(t *testing.T) {
+	cache := &permissionDecisionCache{keyPrefix: "SIMPLE:PERMISSION:"}
+
+	require.Equal(t, "SIMPLE:PERMISSION:VERSION:TENANT:1:1", cache.tenantVersionKey("1"))
+	require.Equal(t, "SIMPLE:PERMISSION:VERSION:ROLE:1:1:3:001", cache.roleVersionKey("1", "001"))
+	require.NotEqual(t, cache.roleVersionKey("1:2", "3"), cache.roleVersionKey("1", "2:3"))
+	require.NotEqual(t, permissionCacheHash("0", "0", "0"), permissionCacheVersion("0", "0", "0"))
+}
+
+func TestPermissionCacheInvalidatesOnlyChangedTenantRole(t *testing.T) {
+	enforcer, rds := newRedisTestEnforcer(t)
+	ctx := context.Background()
+	require.True(t, mustAddPolicies(t, enforcer, ctx, []Policy{
+		{Subject: "admin", Object: "/api/user", Action: "GET", Domain: "tenant-a"},
+		{Subject: "viewer", Object: "/api/report", Action: "GET", Domain: "tenant-a"},
+		{Subject: "admin", Object: "/api/setting", Action: "GET", Domain: "tenant-b"},
+	}))
+
+	allowed, err := enforcer.Check(ctx, []string{"admin"}, "/api/user", "GET", "tenant-a")
+	require.NoError(t, err)
+	require.True(t, allowed)
+	allowed, err = enforcer.Check(ctx, []string{"viewer"}, "/api/report", "GET", "tenant-a")
+	require.NoError(t, err)
+	require.True(t, allowed)
+	allowed, err = enforcer.Check(ctx, []string{"admin"}, "/api/setting", "GET", "tenant-b")
+	require.NoError(t, err)
+	require.True(t, allowed)
+
+	adminKey := enforcer.cache.key([]string{"admin"}, "/api/user", "GET", "tenant-a")
+	viewerKey := enforcer.cache.key([]string{"viewer"}, "/api/report", "GET", "tenant-a")
+	adminTenantBKey := enforcer.cache.key([]string{"admin"}, "/api/setting", "GET", "tenant-b")
+	adminValue, err := rds.Get(ctx, adminKey).Result()
+	require.NoError(t, err)
+	viewerValue, err := rds.Get(ctx, viewerKey).Result()
+	require.NoError(t, err)
+	adminTenantBValue, err := rds.Get(ctx, adminTenantBKey).Result()
+	require.NoError(t, err)
+
+	removed, err := enforcer.RemovePolicies(ctx, "admin", "tenant-a")
+	require.NoError(t, err)
+	require.True(t, removed)
+
+	stats := enforcer.PermissionCacheStats()
+	allowed, err = enforcer.Check(ctx, []string{"viewer"}, "/api/report", "GET", "tenant-a")
+	require.NoError(t, err)
+	require.True(t, allowed)
+	require.Equal(t, stats.RedisHits+1, enforcer.PermissionCacheStats().RedisHits)
+	currentViewerValue, err := rds.Get(ctx, viewerKey).Result()
+	require.NoError(t, err)
+	require.Equal(t, viewerValue, currentViewerValue)
+
+	allowed, err = enforcer.Check(ctx, []string{"admin"}, "/api/setting", "GET", "tenant-b")
+	require.NoError(t, err)
+	require.True(t, allowed)
+	require.Equal(t, stats.RedisHits+2, enforcer.PermissionCacheStats().RedisHits)
+	currentAdminTenantBValue, err := rds.Get(ctx, adminTenantBKey).Result()
+	require.NoError(t, err)
+	require.Equal(t, adminTenantBValue, currentAdminTenantBValue)
+
+	allowed, err = enforcer.Check(ctx, []string{"admin"}, "/api/user", "GET", "tenant-a")
+	require.NoError(t, err)
+	require.False(t, allowed)
+	require.Equal(t, stats.RedisMisses+1, enforcer.PermissionCacheStats().RedisMisses)
+	currentAdminValue, err := rds.Get(ctx, adminKey).Result()
+	require.NoError(t, err)
+	require.NotEqual(t, adminValue, currentAdminValue)
+}
+
+func TestPermissionCacheInvalidatesOnlyChangedDomain(t *testing.T) {
+	enforcer, _ := newRedisTestEnforcer(t)
+	ctx := context.Background()
+	require.True(t, mustAddPolicies(t, enforcer, ctx, []Policy{
+		{Subject: "admin", Object: "/api/user", Action: "GET", Domain: "tenant-a"},
+		{Subject: "admin", Object: "/api/user", Action: "GET", Domain: "tenant-b"},
+	}))
+
+	for _, domain := range []string{"tenant-a", "tenant-b"} {
+		allowed, err := enforcer.Check(ctx, []string{"admin"}, "/api/user", "GET", domain)
+		require.NoError(t, err)
+		require.True(t, allowed)
+	}
+
+	removed, err := enforcer.RemoveDomainPolicies(ctx, "tenant-a")
+	require.NoError(t, err)
+	require.True(t, removed)
+
+	stats := enforcer.PermissionCacheStats()
+	allowed, err := enforcer.Check(ctx, []string{"admin"}, "/api/user", "GET", "tenant-b")
+	require.NoError(t, err)
+	require.True(t, allowed)
+	require.Equal(t, stats.RedisHits+1, enforcer.PermissionCacheStats().RedisHits)
+
+	allowed, err = enforcer.Check(ctx, []string{"admin"}, "/api/user", "GET", "tenant-a")
+	require.NoError(t, err)
+	require.False(t, allowed)
+	require.Equal(t, stats.RedisMisses+1, enforcer.PermissionCacheStats().RedisMisses)
+}
+
+func mustAddPolicies(t *testing.T, enforcer *Enforcer, ctx context.Context, policies []Policy) bool {
+	t.Helper()
+	added, err := enforcer.AddPolicies(ctx, policies)
+	require.NoError(t, err)
+	return added
 }
 
 func TestEnforcerCheck(t *testing.T) {

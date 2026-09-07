@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -88,13 +89,15 @@ func (e *Enforcer) PermissionCacheStats() PermissionCacheStats {
 	return e.cache.stats()
 }
 
-func (e *Enforcer) invalidateCache(scopes ...permissionCacheScope) {
+func (e *Enforcer) invalidateCache(scopes ...permissionCacheScope) error {
+	var err error
 	if e.cache != nil {
-		e.cache.invalidate(scopes...)
+		err = e.cache.invalidate(scopes...)
 	}
 	if e.patternCache != nil {
-		e.patternCache.clear()
+		e.patternCache.clear(scopes...)
 	}
+	return err
 }
 
 type permissionDecisionCache struct {
@@ -119,6 +122,8 @@ type permissionDecisionCache struct {
 type permissionLocalCacheEntry struct {
 	key       string
 	allowed   bool
+	subjects  []string
+	domain    string
 	expiresAt time.Time
 }
 
@@ -220,37 +225,58 @@ func (c *permissionDecisionCache) get(ctx context.Context, key string, subjects 
 	}
 
 	c.redisHits.Add(1)
-	c.setLocal(key, cachedAllowed)
+	c.setLocal(key, cachedAllowed, subjects, domain)
 	return cachedAllowed, true, version, true
 }
 
-func (c *permissionDecisionCache) set(ctx context.Context, key string, allowed bool, version string) {
-	c.setLocal(key, allowed)
+func (c *permissionDecisionCache) set(ctx context.Context, key string, subjects []string, domain string, allowed bool, version string) {
+	c.setLocal(key, allowed, subjects, domain)
 	if version == "" {
 		return
 	}
 	if err := c.rds.Set(ctx, key, encodePermissionDecision(version, allowed), c.redisTTL).Err(); err == nil {
 		c.redisSets.Add(1)
+	} else {
+		c.redisErrors.Add(1)
 	}
 }
 
-func (c *permissionDecisionCache) invalidate(scopes ...permissionCacheScope) {
-	c.clearLocal()
+func (c *permissionDecisionCache) invalidate(scopes ...permissionCacheScope) error {
+	c.clearLocal(scopes...)
 	if c.rds == nil {
-		return
+		return nil
 	}
 
+	keys := c.invalidationVersionKeys(scopes)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	_, err := c.rds.Pipelined(ctx, func(pipe redis.Pipeliner) error {
-		for _, key := range c.invalidationVersionKeys(scopes) {
-			pipe.Incr(ctx, key)
+
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		_, lastErr = c.rds.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+			for _, key := range keys {
+				pipe.Incr(ctx, key)
+			}
+			return nil
+		})
+		if lastErr == nil {
+			return nil
 		}
-		return nil
-	})
-	if err != nil {
-		c.redisErrors.Add(1)
+		if attempt == 2 {
+			break
+		}
+
+		timer := time.NewTimer(time.Duration(25*(1<<attempt)) * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			attempt = 2
+		case <-timer.C:
+		}
 	}
+
+	c.redisErrors.Add(1)
+	return lastErr
 }
 
 func (c *permissionDecisionCache) versionKeys(subjects []string, domain string) []string {
@@ -346,7 +372,7 @@ func (c *permissionDecisionCache) getLocal(key string) (bool, bool) {
 	return entry.allowed, true
 }
 
-func (c *permissionDecisionCache) setLocal(key string, allowed bool) {
+func (c *permissionDecisionCache) setLocal(key string, allowed bool, subjects []string, domain string) {
 	if c.localTTL <= 0 || c.maxLocalEntries <= 0 {
 		return
 	}
@@ -354,7 +380,13 @@ func (c *permissionDecisionCache) setLocal(key string, allowed bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	entry := &permissionLocalCacheEntry{key: key, allowed: allowed, expiresAt: time.Now().Add(c.localTTL)}
+	entry := &permissionLocalCacheEntry{
+		key:       key,
+		allowed:   allowed,
+		subjects:  permissionCanonicalSubjects(subjects),
+		domain:    domain,
+		expiresAt: time.Now().Add(c.localTTL),
+	}
 	if element, ok := c.local[key]; ok {
 		element.Value = entry
 		c.lru.MoveToFront(element)
@@ -376,11 +408,38 @@ func (c *permissionDecisionCache) setLocal(key string, allowed bool) {
 	c.lru.Remove(oldest)
 }
 
-func (c *permissionDecisionCache) clearLocal() {
+func (c *permissionDecisionCache) clearLocal(scopes ...permissionCacheScope) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if len(scopes) > 0 {
+		for key, element := range c.local {
+			entry := element.Value.(*permissionLocalCacheEntry)
+			if !permissionCacheEntryMatches(entry.domain, entry.subjects, scopes) {
+				continue
+			}
+			delete(c.local, key)
+			c.lru.Remove(element)
+		}
+		return
+	}
+
 	c.local = make(map[string]*list.Element)
 	c.lru.Init()
+}
+
+func permissionCacheEntryMatches(domain string, subjects []string, scopes []permissionCacheScope) bool {
+	for _, scope := range scopes {
+		if scope.tenantID != domain {
+			continue
+		}
+		if scope.tenantWide {
+			return true
+		}
+		if slices.Contains(subjects, scope.roleCode) {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *permissionDecisionCache) stats() PermissionCacheStats {
@@ -430,6 +489,8 @@ type permissionPatternCacheEntry struct {
 	key       string
 	patterns  []permissionPattern
 	version   string
+	subjects  []string
+	domain    string
 	expiresAt time.Time
 }
 
@@ -463,7 +524,7 @@ func (c *permissionPatternCache) get(key, version string, versionKnown bool) ([]
 	return append([]permissionPattern(nil), entry.patterns...), true
 }
 
-func (c *permissionPatternCache) set(key string, patterns []permissionPattern, version string) {
+func (c *permissionPatternCache) set(key string, patterns []permissionPattern, version string, subjects []string, domain string) {
 	if len(patterns) > permissionPatternCacheMaxRules {
 		return
 	}
@@ -474,6 +535,8 @@ func (c *permissionPatternCache) set(key string, patterns []permissionPattern, v
 		key:       key,
 		patterns:  append([]permissionPattern(nil), patterns...),
 		version:   version,
+		subjects:  permissionCanonicalSubjects(subjects),
+		domain:    domain,
 		expiresAt: time.Now().Add(permissionPatternCacheTTL),
 	}
 	if element, ok := c.entries[key]; ok {
@@ -496,9 +559,21 @@ func (c *permissionPatternCache) set(key string, patterns []permissionPattern, v
 	c.lru.Remove(oldest)
 }
 
-func (c *permissionPatternCache) clear() {
+func (c *permissionPatternCache) clear(scopes ...permissionCacheScope) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if len(scopes) > 0 {
+		for key, element := range c.entries {
+			entry := element.Value.(*permissionPatternCacheEntry)
+			if !permissionCacheEntryMatches(entry.domain, entry.subjects, scopes) {
+				continue
+			}
+			delete(c.entries, key)
+			c.lru.Remove(element)
+		}
+		return
+	}
+
 	c.entries = make(map[string]*list.Element, permissionPatternCacheSize)
 	c.lru.Init()
 }

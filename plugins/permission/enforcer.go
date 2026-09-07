@@ -29,6 +29,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/suyuan32/simple-admin-common/config"
+	"golang.org/x/sync/singleflight"
 )
 
 const (
@@ -60,6 +61,8 @@ type Enforcer struct {
 	dialect      string
 	cache        *permissionDecisionCache
 	patternCache *permissionPatternCache
+	cacheGroup   singleflight.Group
+	patternGroup singleflight.Group
 }
 
 // EnforcerOption customizes an Enforcer without changing the existing
@@ -238,7 +241,10 @@ func (e *Enforcer) MigrateFromCasbinRules(ctx context.Context, timeouts ...time.
 	if err = tx.Commit(); err != nil {
 		return 0, err
 	}
-	e.invalidateCache()
+	createdTarget = false
+	if err = e.invalidateCache(); err != nil {
+		return targetCount, fmt.Errorf("permission cache invalidation failed: %w", err)
+	}
 
 	return targetCount, nil
 }
@@ -274,27 +280,33 @@ func (e *Enforcer) Check(ctx context.Context, subjects []string, object, action 
 		return false, nil
 	}
 
-	var cacheKey, cacheVersion string
-	cacheVersionKnown := e.cache == nil
-	if e.cache != nil {
-		cacheKey = e.cache.key(subjects, object, action, domain)
+	if e.cache == nil {
+		return e.checkDatabase(ctx, subjects, object, action, domain, "", true)
+	}
+
+	cacheKey := e.cache.key(subjects, object, action, domain)
+	result, err, _ := e.cacheGroup.Do(cacheKey, func() (any, error) {
+		var cacheVersion string
+		var cacheVersionKnown bool
 		if allowed, hit, version, versionKnown := e.cache.get(ctx, cacheKey, subjects, domain); hit {
 			return allowed, nil
 		} else {
 			cacheVersion = version
 			cacheVersionKnown = versionKnown
 		}
-	}
 
-	matched, err := e.checkDatabase(ctx, subjects, object, action, domain, cacheVersion, cacheVersionKnown)
+		matched, err := e.checkDatabase(ctx, subjects, object, action, domain, cacheVersion, cacheVersionKnown)
+		if err != nil {
+			return false, err
+		}
+		e.cache.set(ctx, cacheKey, subjects, domain, matched, cacheVersion)
+		return matched, nil
+	})
 	if err != nil {
 		return false, err
 	}
-	if e.cache != nil {
-		e.cache.set(ctx, cacheKey, matched, cacheVersion)
-	}
 
-	return matched, nil
+	return result.(bool), nil
 }
 
 func (e *Enforcer) checkDatabase(ctx context.Context, subjects []string, object, action, domain, cacheVersion string, cacheVersionKnown bool) (bool, error) {
@@ -358,6 +370,12 @@ type permissionRequestKey struct {
 	Domain  string
 }
 
+type permissionPatternRequestKey struct {
+	Subject string
+	Action  string
+	Domain  string
+}
+
 type permissionPattern struct {
 	matcher *regexp.Regexp
 }
@@ -388,6 +406,8 @@ func (e *Enforcer) batchEnforce(ctx context.Context, requests []permissionReques
 	if err != nil {
 		return nil, err
 	}
+	allowedByKey := make(map[permissionRequestKey]bool, len(unique))
+	patternRequests := make(map[permissionPatternRequestKey][]permissionRequest)
 	for _, request := range unique {
 		key := permissionRequestKey{
 			Subject: request.Subject,
@@ -395,15 +415,43 @@ func (e *Enforcer) batchEnforce(ctx context.Context, requests []permissionReques
 			Action:  request.Action,
 			Domain:  request.Domain,
 		}
-		allowed := false
 		if _, ok := exactMatches[key]; ok {
-			allowed = true
-		} else {
-			allowed, err = e.hasMatchedPatternPolicy(ctx, []string{request.Subject}, request.Object, request.Action, request.Domain, "", false)
-			if err != nil {
-				return nil, err
-			}
+			allowedByKey[key] = true
+			continue
 		}
+
+		patternKey := permissionPatternRequestKey{
+			Subject: request.Subject,
+			Action:  request.Action,
+			Domain:  request.Domain,
+		}
+		patternRequests[patternKey] = append(patternRequests[patternKey], request)
+	}
+
+	for patternKey, requests := range patternRequests {
+		patterns, err := e.loadPatternPolicies(ctx, []string{patternKey.Subject}, patternKey.Action, patternKey.Domain)
+		if err != nil {
+			return nil, err
+		}
+		for _, request := range requests {
+			key := permissionRequestKey{
+				Subject: request.Subject,
+				Object:  request.Object,
+				Action:  request.Action,
+				Domain:  request.Domain,
+			}
+			allowedByKey[key] = permissionPatternsMatch(patterns, request.Object)
+		}
+	}
+
+	for _, request := range unique {
+		key := permissionRequestKey{
+			Subject: request.Subject,
+			Object:  request.Object,
+			Action:  request.Action,
+			Domain:  request.Domain,
+		}
+		allowed := allowedByKey[key]
 		for _, index := range indexes[key] {
 			results[index] = allowed
 		}
@@ -599,7 +647,9 @@ func (e *Enforcer) ReplacePolicies(ctx context.Context, subject string, policies
 	if err = tx.Commit(); err != nil {
 		return err
 	}
-	e.invalidateCache(permissionRoleCacheScope(domain, subject))
+	if err = e.invalidateCache(permissionRoleCacheScope(domain, subject)); err != nil {
+		return fmt.Errorf("permission cache invalidation failed: %w", err)
+	}
 	return nil
 }
 
@@ -624,7 +674,9 @@ func (e *Enforcer) RemovePolicies(ctx context.Context, subject string, domains .
 		return false, err
 	}
 	if count > 0 {
-		e.invalidateCache(permissionRoleCacheScope(domain, subject))
+		if err = e.invalidateCache(permissionRoleCacheScope(domain, subject)); err != nil {
+			return true, fmt.Errorf("permission cache invalidation failed: %w", err)
+		}
 	}
 
 	return count > 0, nil
@@ -648,14 +700,23 @@ func (e *Enforcer) RenameSubject(ctx context.Context, oldSubject, newSubject str
 		"UPDATE %s SET v0 = %s WHERE v0 = %s AND v3 = %s",
 		tableName, e.placeholder(1), e.placeholder(2), e.placeholder(3),
 	)
-	_, err = e.db.ExecContext(ctx, query, newSubject, oldSubject, domain)
-	if err == nil {
-		e.invalidateCache(
+	result, err := e.db.ExecContext(ctx, query, newSubject, oldSubject, domain)
+	if err != nil {
+		return err
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count > 0 {
+		if err = e.invalidateCache(
 			permissionRoleCacheScope(domain, oldSubject),
 			permissionRoleCacheScope(domain, newSubject),
-		)
+		); err != nil {
+			return fmt.Errorf("permission cache invalidation failed: %w", err)
+		}
 	}
-	return err
+	return nil
 }
 
 // AddPolicies adds only policies that do not already exist. Each policy must
@@ -687,7 +748,9 @@ func (e *Enforcer) AddPolicies(ctx context.Context, policies []Policy) (bool, er
 		for _, policy := range policies {
 			scopes = append(scopes, permissionRoleCacheScope(policy.Domain, policy.Subject))
 		}
-		e.invalidateCache(scopes...)
+		if err = e.invalidateCache(scopes...); err != nil {
+			return added, fmt.Errorf("permission cache invalidation failed: %w", err)
+		}
 	}
 	return added, nil
 }
@@ -708,7 +771,9 @@ func (e *Enforcer) RemoveDomainPolicies(ctx context.Context, domain string) (boo
 		return false, err
 	}
 	if count > 0 {
-		e.invalidateCache(permissionTenantCacheScope(domain))
+		if err = e.invalidateCache(permissionTenantCacheScope(domain)); err != nil {
+			return true, fmt.Errorf("permission cache invalidation failed: %w", err)
+		}
 	}
 	return count > 0, nil
 }
@@ -762,7 +827,9 @@ func (e *Enforcer) RemovePoliciesByResources(ctx context.Context, domains []stri
 		for _, domain := range domains {
 			scopes = append(scopes, permissionTenantCacheScope(domain))
 		}
-		e.invalidateCache(scopes...)
+		if err = e.invalidateCache(scopes...); err != nil {
+			return removed, fmt.Errorf("permission cache invalidation failed: %w", err)
+		}
 	}
 	return removed, nil
 }
@@ -793,20 +860,37 @@ func (e *Enforcer) hasMatchedPatternPolicy(ctx context.Context, subjects []strin
 	cacheKey := permissionPatternCacheKey(subjects, action, domain)
 	patterns, cached := e.patternCache.get(cacheKey, cacheVersion, cacheVersionKnown)
 	if !cached {
-		var err error
-		patterns, err = e.loadPatternPolicies(ctx, subjects, action, domain)
+		groupKey := fmt.Sprintf("%s\x00%s\x00%t", cacheKey, cacheVersion, cacheVersionKnown)
+		result, err, _ := e.patternGroup.Do(groupKey, func() (any, error) {
+			if cachedPatterns, hit := e.patternCache.get(cacheKey, cacheVersion, cacheVersionKnown); hit {
+				return cachedPatterns, nil
+			}
+
+			loadedPatterns, err := e.loadPatternPolicies(ctx, subjects, action, domain)
+			if err != nil {
+				return nil, err
+			}
+			if cacheVersionKnown {
+				e.patternCache.set(cacheKey, loadedPatterns, cacheVersion, subjects, domain)
+			}
+			return loadedPatterns, nil
+		})
 		if err != nil {
 			return false, err
 		}
-		e.patternCache.set(cacheKey, patterns, cacheVersion)
+		patterns = result.([]permissionPattern)
 	}
 
+	return permissionPatternsMatch(patterns, object), nil
+}
+
+func permissionPatternsMatch(patterns []permissionPattern, object string) bool {
 	for _, pattern := range patterns {
 		if pattern.matcher != nil && pattern.matcher.MatchString(object) {
-			return true, nil
+			return true
 		}
 	}
-	return false, nil
+	return false
 }
 
 func (e *Enforcer) loadPatternPolicies(ctx context.Context, subjects []string, action, domain string) ([]permissionPattern, error) {

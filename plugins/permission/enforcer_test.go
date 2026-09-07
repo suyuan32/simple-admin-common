@@ -50,6 +50,20 @@ func newRedisTestEnforcer(t *testing.T) (*Enforcer, *redis.Client) {
 	return enforcer, client
 }
 
+func newRedisTestEnforcerWithLocalCache(t *testing.T) (*Enforcer, *redis.Client, *miniredis.Miniredis) {
+	t.Helper()
+	enforcer := newTestEnforcer(t)
+	server := miniredis.RunT(t)
+	client := redis.NewClient(&redis.Options{Addr: server.Addr()})
+	t.Cleanup(func() {
+		require.NoError(t, client.Close())
+	})
+
+	options := DefaultPermissionCacheOptions()
+	WithRedisCache(client, options)(enforcer)
+	return enforcer, client, server
+}
+
 func TestDefaultPermissionCacheOptions(t *testing.T) {
 	options := DefaultPermissionCacheOptions()
 
@@ -155,6 +169,64 @@ func TestPermissionCacheInvalidatesOnlyChangedDomain(t *testing.T) {
 	require.Equal(t, stats.RedisMisses+1, enforcer.PermissionCacheStats().RedisMisses)
 }
 
+func TestPermissionLocalCacheInvalidatesOnlyChangedTenantRole(t *testing.T) {
+	enforcer, _, _ := newRedisTestEnforcerWithLocalCache(t)
+	ctx := context.Background()
+	require.True(t, mustAddPolicies(t, enforcer, ctx, []Policy{
+		{Subject: "admin", Object: "/api/user", Action: "GET", Domain: "tenant-a"},
+		{Subject: "viewer", Object: "/api/report", Action: "GET", Domain: "tenant-a"},
+		{Subject: "admin", Object: "/api/setting", Action: "GET", Domain: "tenant-b"},
+	}))
+
+	for _, request := range []struct {
+		subject string
+		object  string
+		domain  string
+	}{
+		{subject: "admin", object: "/api/user", domain: "tenant-a"},
+		{subject: "viewer", object: "/api/report", domain: "tenant-a"},
+		{subject: "admin", object: "/api/setting", domain: "tenant-b"},
+	} {
+		allowed, err := enforcer.Check(ctx, []string{request.subject}, request.object, "GET", request.domain)
+		require.NoError(t, err)
+		require.True(t, allowed)
+	}
+
+	stats := enforcer.PermissionCacheStats()
+	removed, err := enforcer.RemovePolicies(ctx, "admin", "tenant-a")
+	require.NoError(t, err)
+	require.True(t, removed)
+
+	allowed, err := enforcer.Check(ctx, []string{"viewer"}, "/api/report", "GET", "tenant-a")
+	require.NoError(t, err)
+	require.True(t, allowed)
+	require.Equal(t, stats.LocalHits+1, enforcer.PermissionCacheStats().LocalHits)
+
+	allowed, err = enforcer.Check(ctx, []string{"admin"}, "/api/setting", "GET", "tenant-b")
+	require.NoError(t, err)
+	require.True(t, allowed)
+	require.Equal(t, stats.LocalHits+2, enforcer.PermissionCacheStats().LocalHits)
+
+	allowed, err = enforcer.Check(ctx, []string{"admin"}, "/api/user", "GET", "tenant-a")
+	require.NoError(t, err)
+	require.False(t, allowed)
+	require.Equal(t, stats.LocalHits+2, enforcer.PermissionCacheStats().LocalHits)
+}
+
+func TestPermissionMutationReportsCacheInvalidationFailure(t *testing.T) {
+	enforcer, _, server := newRedisTestEnforcerWithLocalCache(t)
+	ctx := context.Background()
+	require.True(t, mustAddPolicies(t, enforcer, ctx, []Policy{
+		{Subject: "admin", Object: "/api/user", Action: "GET", Domain: "tenant-a"},
+	}))
+
+	server.Close()
+	removed, err := enforcer.RemovePolicies(ctx, "admin", "tenant-a")
+	require.True(t, removed)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "permission cache invalidation failed")
+}
+
 func mustAddPolicies(t *testing.T, enforcer *Enforcer, ctx context.Context, policies []Policy) bool {
 	t.Helper()
 	added, err := enforcer.AddPolicies(ctx, policies)
@@ -233,6 +305,25 @@ func TestEnforcerBatchEnforceCompatibility(t *testing.T) {
 
 	_, err = enforcer.BatchEnforce([][]any{{"001", "/health"}})
 	require.Error(t, err)
+}
+
+func TestEnforcerBatchEnforcePatternPolicies(t *testing.T) {
+	enforcer := newTestEnforcer(t)
+	ctx := context.Background()
+	require.NoError(t, enforcer.ReplacePolicies(ctx, "001", []Policy{
+		{Object: "/api/user/:id", Action: "GET"},
+		{Object: "/api/report/*", Action: "GET"},
+	}))
+
+	results, err := enforcer.BatchEnforce([][]any{
+		{"001", "/api/user/1", "GET"},
+		{"001", "/api/user/2", "GET"},
+		{"001", "/api/report/2026/09", "GET"},
+		{"001", "/api/setting", "GET"},
+		{"001", "/api/user/1", "GET"},
+	})
+	require.NoError(t, err)
+	require.Equal(t, []bool{true, true, true, false, true}, results)
 }
 
 func TestEnforcerBatchEnforceUsesChunkedExactQueries(t *testing.T) {
